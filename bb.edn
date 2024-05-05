@@ -7,4 +7,6 @@
                  (shell "bb uberscript espoir -m net.coruscation.espoir.main")
                  (spit "espoir"
                        (str (slurp "prelude")
-                            (slurp "espoir"))))}}
+                            "\n"
+                            (slurp "espoir")))
+                 (shell "chmod +x espoir"))}}

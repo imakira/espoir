@@ -1,7 +1,10 @@
 #!/usr/bin/env bb
 ;; -*- mode: clojure -*-
 
-;; DO NOT EDIT DIRECTLY. GENERATED FROM bb run build(ns clojure.term.colors)
+;; DO NOT EDIT DIRECTLY. GENERATED FROM bb run build
+
+
+(ns clojure.term.colors)
 
 (defn- escape-code
   [i]
