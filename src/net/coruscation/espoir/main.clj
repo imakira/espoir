@@ -90,9 +90,11 @@
                  (if (seq (hs/select (hs/class "FrEx")
                                      next))
                    (conj result {:fr-ex (extract-string next)})
-                   (conj (pop result)
-                         (assoc (last result)
-                                :to-ex (extract-string next)))))
+                   (update result
+                           (dec (count result))
+                           (fn [item]
+                             (assoc item
+                                    :to-ex (extract-string next))))))
                [])))
 
 (defn process-wrd [wrd]
@@ -111,10 +113,10 @@
                                             :id
                                             (str/starts-with? "fren:"))
                                   (conj result [next])
-                                  ;; TODO
-                                  (conj (pop result)
-                                        (conj (last result)
-                                              next))))
+                                  (update result
+                                          (dec (count result))
+                                          (fn [item]
+                                            (conj item next)))))
                               []
                               meaning-tags)]
       {:title (-> title-tag
@@ -204,9 +206,7 @@
               (map process-wrd))})
 
 (defn print-definition [definition]
-  (let [{{fr-wd :fr-wd
-          fr-tooltip :fr-tooltip
-          meanings :meanings} :definition
+  (let [{{:keys [fr-wd fr-tooltip meanings]} :definition
          example-sentences :example-sentences} definition]
     (print (str ((comp term/green term/bold) fr-wd) " " (term/blue fr-tooltip)":\n"))
 
@@ -249,8 +249,7 @@
       (println))))
 
 (defn print-definition-short [definition]
-  (let [{{fr-tooltip :fr-tooltip
-          meanings :meanings } :definition}
+  (let [{{:keys [fr-tooltip meanings]} :definition}
         definition]
     (str "  " (term/blue fr-tooltip)
          ": "
@@ -307,8 +306,7 @@
 
 #_[{:infinitif "" :conjugations [{:form "" :descriptions [""]}]}]
 (defn print-conjugations [conjugations]
-  (doseq [{infinitif :infinitif
-           conjugations :conjugations} conjugations]
+  (doseq [{:keys [infinitif conjugations]} conjugations]
     (println (str "Du verb " ((comp term/bold term/magenta) infinitif)))
     (->> conjugations
          (map (fn [{form :form
@@ -321,8 +319,7 @@
          println)))
 
 (defn print-word [word]
-  (let [{{declensions :declensions
-          conjugations :conjugations} :inflections
+  (let [{{:keys [declensions conjugations]} :inflections
          defs :defs} word
         {:keys [all short no-inflections]} @*options*]
     (when (and (seq declensions)
@@ -352,7 +349,6 @@
          print-word)))
 
 (defn -main [& args]
-  (let [{options :options
-         arguments :arguments} (cli/parse-opts args cli-options)]
+  (let [{:keys [options arguments]} (cli/parse-opts args cli-options)]
     (swap! *options* (constantly options))
     (main (str/join " " arguments))))
