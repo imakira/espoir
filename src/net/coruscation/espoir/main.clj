@@ -11,11 +11,13 @@
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
 (def cli-options
-  [["-s" "--short" "Show results in a more concise format, omitting some information."
+  [["[option]" "" "[descriptions]"
+    :default "[default]"]
+   ["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
-   ["-a" "--all" "Show all translations"
+   ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
     :default false]
-   ["-N" "--no-inflections" "Don't show inflections"
+   ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
    ["-h" "--help"]])
 
@@ -348,7 +350,23 @@
     (->> (get-word doc)
          print-word)))
 
+(defn display-usage []
+  (->> ["Usage: espoir [options] words"
+        "Options: "
+        (:summary (cli/parse-opts [] cli-options))]
+       (str/join \newline)
+       println))
+
 (defn -main [& args]
-  (let [{:keys [options arguments]} (cli/parse-opts args cli-options)]
-    (swap! *options* (constantly options))
-    (main (str/join " " arguments))))
+  (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
+    (cond
+      (seq errors) (do (->> errors
+                            (str/join \newline)
+                            println)
+                       (println)
+                       (display-usage))
+      (:help options) (display-usage)
+      :else (do (swap! *options* (constantly options))
+                (some->> (seq arguments)
+                         (str/join " ")
+                         main)))))
