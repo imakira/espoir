@@ -1,4 +1,6 @@
 #+OPTIONS: \n:t
+#+OPTIONS: toc:nil
+
 * Espoir - A Command Line French to English Dictionary
 
 #+BEGIN_QUOTE
@@ -21,11 +23,12 @@ espoir means "hope" in French.
 
 ** Usage
 
-#+BEGIN_SRC bash :exports none :results raw
+#+BEGIN_SRC bash :exports none :results raw :wrap quote
 espoir -h
 #+END_SRC
 
 #+RESULTS:
+#+begin_quote
 Usage: espoir [options] words
 Options: 
   [option]              [default]  [descriptions]
@@ -33,6 +36,7 @@ Options:
   -a, --all             false      Show all translation sections (only principal translations are shown by default)
   -N, --no-inflections  false      Don't show inflection sections
   -h, --help
+#+end_quote
 
 ** Screenshots
 
