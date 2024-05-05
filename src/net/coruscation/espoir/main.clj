@@ -338,8 +338,8 @@
                            (= title "Principal Translations"))
                          defs))]
       (if (:short @*options*)
-        (print-definitions-short (:defs word))
-        (print-definitions (:defs word))))))
+        (print-definitions-short defs)
+        (print-definitions defs)))))
 
 (defn main [query]
   (let [doc (-> (slurp (str "https://www.wordreference.com/fren/"
