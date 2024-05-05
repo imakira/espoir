@@ -23,12 +23,12 @@ espoir means "hope" in French.
 
 ** Usage
 
-#+BEGIN_SRC bash :exports none :results raw :wrap quote
+#+BEGIN_SRC bash :exports results :results code
 espoir -h
 #+END_SRC
 
 #+RESULTS:
-#+begin_quote
+#+begin_src bash
 Usage: espoir [options] words
 Options: 
   [option]              [default]  [descriptions]
@@ -36,7 +36,8 @@ Options:
   -a, --all             false      Show all translation sections (only principal translations are shown by default)
   -N, --no-inflections  false      Don't show inflection sections
   -h, --help
-#+end_quote
+#+end_src
+
 
 ** Screenshots
 

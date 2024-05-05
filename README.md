@@ -19,13 +19,15 @@
 
 ## Usage
 
-> Usage: espoir [options] words  
-> Options:  
->   [option]              [default]  [descriptions]  
->   -s, &#x2013;short           false      Show results in a more concise format, omitting some information.  
->   -a, &#x2013;all             false      Show all translation sections (only principal translations are shown by default)  
->   -N, &#x2013;no-inflections  false      Don't show inflection sections  
->   -h, &#x2013;help  
+```bash
+Usage: espoir [options] words
+Options: 
+  [option]              [default]  [descriptions]
+  -s, --short           false      Show results in a more concise format, omitting some information.
+  -a, --all             false      Show all translation sections (only principal translations are shown by default)
+  -N, --no-inflections  false      Don't show inflection sections
+  -h, --help
+```
 
 
 ## Screenshots
