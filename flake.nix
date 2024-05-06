@@ -6,12 +6,14 @@
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = nixpkgs.legacyPackages.${system};
           fhs = pkgs.buildFHSUserEnv {
-            name = "fhs-shell";
-            targetPkgs = pkgs: [pkgs.gcc pkgs.libtool pkgs.libz] ;
+            name = "espoir";
+            targetPkgs = pkgs: [pkgs.gcc pkgs.libz] ;
+            runScript = "${pkgs.babashka}/bin/bb ./espoir";
           };
       in
       {
         devShells.default = fhs.env;
+        packages.default = fhs;
       }
     );
 }
