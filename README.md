@@ -7,6 +7,9 @@
 
 ## Installing
 
+
+### Manuall Install
+
 1.  Install [babashka](https://github.com/babashka/babashka)
 2.  Save [espoir](https://raw.githubusercontent.com/imakira/espoir/main/espoir) somewhere and run it!  
     
@@ -15,6 +18,13 @@
     chmod +x espoir
     ./espoir espoir
     ```
+
+
+### Using Nix
+
+```bash
+nix run github:imakira/espoir -- espoir
+```
 
 
 ## Usage
