@@ -11,6 +11,8 @@ espoir means "hope" in French.
 
 ** Installing
 
+*** Manuall Install
+
 1. Install [[https://github.com/babashka/babashka][babashka]]
 2. Save [[https://raw.githubusercontent.com/imakira/espoir/main/espoir][espoir]] somewhere and run it!
 
@@ -20,6 +22,11 @@ espoir means "hope" in French.
      ./espoir espoir
    #+END_SRC
 
+*** Using Nix
+
+#+BEGIN_SRC bash
+nix run github:imakira/espoir -- espoir
+#+END_SRC
 
 ** Usage
 
