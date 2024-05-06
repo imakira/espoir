@@ -8,7 +8,7 @@
           fhs = pkgs.buildFHSUserEnv {
             name = "espoir";
             targetPkgs = pkgs: [pkgs.gcc pkgs.libz] ;
-            runScript = "${pkgs.babashka}/bin/bb ./espoir";
+            runScript = "${pkgs.babashka}/bin/bb ${self}/espoir";
           };
       in
       {
