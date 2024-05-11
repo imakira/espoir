@@ -19,6 +19,8 @@
     :default false]
    ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
+   ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
+    :default false]
    ["-h" "--help"]])
 
 (def ^:dynamic *options* (atom (cli/get-default-options cli-options)))
@@ -367,6 +369,9 @@
                        (display-usage))
       (:help options) (display-usage)
       :else (do (swap! *options* (constantly options))
-                (some->> (seq arguments)
-                         (str/join " ")
-                         main)))))
+                (binding [term/*disable-colors* (or (:no-color options)
+                                                    (not
+                                                     (nil? (System/getenv "NO_COLOR"))))]
+                  (some->> (seq arguments)
+                           (str/join " ")
+                           main))))))
