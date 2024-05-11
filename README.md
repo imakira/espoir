@@ -36,6 +36,7 @@ Options:
   -s, --short           false      Show results in a more concise format, omitting some information.
   -a, --all             false      Show all translation sections (only principal translations are shown by default)
   -N, --no-inflections  false      Don't show inflection sections
+  -n, --no-color        false      Disable ascii color output, env NO_COLOR is also supported
   -h, --help
 ```
 
