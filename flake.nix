@@ -5,15 +5,15 @@
   outputs = { self, flake-utils, nixpkgs }:
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = nixpkgs.legacyPackages.${system};
-          fhs = pkgs.buildFHSUserEnv {
+          fhsFn = runScript: pkgs.buildFHSUserEnv {
             name = "espoir";
             targetPkgs = pkgs: [pkgs.gcc pkgs.libz] ;
-            runScript = "${pkgs.babashka}/bin/bb ${self}/espoir";
+            runScript = runScript;
           };
       in
       {
-        devShells.default = fhs.env;
-        packages.default = fhs;
+        devShells.default = (fhsFn "/usr/bin/env bash").env;
+        packages.default = (fhsFn "${pkgs.babashka}/bin/bb ${self}/espoir");
       }
     );
 }
