@@ -1,19 +1,20 @@
+(ns net.coruscation.espoir.main)
+(require '[babashka.pods :as pods])
+;; workaround for https://github.com/babashka/pods/issues/25
+(require '[clojure.zip])
+(def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9"))
 (require '[pod.retrogradeorbit.hickory.select :as hs])
-(ns net.coruscation.espoir.main
-  (:require [clojure.string :as str]
-            ;; for whatever reason this doesn't work
-            [pod.retrogradeorbit.hickory.select :as hs]
-            [pod.retrogradeorbit.bootleg.utils :as bootleg]
-            [clojure.term.colors :as term]
-            [clojure.java.io :as io]
-            [clojure.tools.cli :as cli]))
+(require '[clojure.string :as str])
+(require '[pod.retrogradeorbit.bootleg.utils :as bootleg])
+(require '[clojure.term.colors :as term])
+(require '[clojure.java.io :as io])
+(require '[clojure.tools.cli :as cli])
+(require '[babashka.pods :as pods])
 
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
 (def cli-options
-  [["[option]" "" "[descriptions]"
-    :default "[default]"]
-   ["-s" "--short" "Show results in a more concise format, omitting some information."
+  [["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
    ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
     :default false]
@@ -374,4 +375,6 @@
                                                      (nil? (System/getenv "NO_COLOR"))))]
                   (some->> (seq arguments)
                            (str/join " ")
-                           main))))))
+                           main)))))
+  (pods/unload-pod pod)
+  (shutdown-agents))
