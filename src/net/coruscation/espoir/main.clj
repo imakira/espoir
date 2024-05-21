@@ -207,7 +207,9 @@
         declensions (->> inflections-doc
                          :content
                          (drop 1)
-                         (drop-last (+ 2 (count conjugations)))
+                         (drop-last (if (seq conjugations)
+                                      (+ 2 (count conjugations))
+                                      1))
                          (partition-by (fn [element]
                                          (= :br (:tag element))))
                          (partition 2)
