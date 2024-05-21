@@ -1,6 +1,7 @@
 {:deps {clojure.java-time/clojure.java-time {:mvn/version "1.1.0"}
         clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
         org.clojure/tools.cli {:mvn/version "1.1.230"}
-        babashka/babashka.pods {:mvn/version "0.2.0"}}
+        babashka/babashka.pods {:mvn/version "0.2.0"}
+        org.clojure/tools.namespace {:mvn/version "1.5.0"}}
  :cider-clj {:extra-deps {cider/cider-nrepl {:mvn/version "0.47.0"}}
              :main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware]"]}}
