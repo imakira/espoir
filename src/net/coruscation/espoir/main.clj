@@ -159,7 +159,7 @@
                                     :content
                                     first)
                           :text (->> raw-inflection
-                                     (re-matches #":.*?(\w+).*")
+                                     (re-matches #":.*?(\p{IsAlphabetic}+).*")
                                      second)})))})]
     (some->> elements
              (drop 2)
