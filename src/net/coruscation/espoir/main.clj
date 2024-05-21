@@ -26,7 +26,8 @@
 
 (def ^:dynamic *options* (atom (cli/get-default-options cli-options)))
 
-(defn extract-string [tag]
+(defn extract-string [tag & {:keys [spacer]
+                             :or {spacer " "}}]
   (letfn [(inner [tag]
             (->> (cond
                    (string? tag) tag
@@ -36,11 +37,24 @@
          (conj [])
          flatten
          (remove #(= "" (str/trim %)))
-         (str/join " ")
+         (str/join spacer)
          str/trim)))
 
+(defn collapse-whitespace [st]
+  (.replaceAll st "\\s+" " "))
+
 (defn process-definition [tags]
-  (letfn [(process-meaning [tag]
+  (letfn [(remove-tooltip [tags]
+            (filter (fn [tag]
+                      (not (or (= (:class (:attrs tag)) "POS2")
+                               (= (:class (:attrs tag)) "conjugate"))))
+                    tags))
+          (extract-word [tags]
+            (as-> tags %
+              (remove-tooltip %)
+              (extract-string % :spacer "")
+              (collapse-whitespace %)))
+          (process-meaning [tag]
             (let [[_ explanation to-word]
                   (hs/select (hs/tag "td")
                              tag)]
@@ -62,8 +76,7 @@
                                        str/trim)
                :to-wd (some-> to-word
                               :content
-                              first
-                              str/trim)
+                              extract-word)
                :to-tooltip (some-> (hs/select (hs/class "POS2")
                                               tag)
                                    first
@@ -74,8 +87,7 @@
                             (first tags))
                  first
                  :content
-                 first
-                 str/trim)
+                 extract-word)
      :fr-tooltip (some-> (hs/select (hs/child (hs/class "FrWrd")
                                               (hs/class "POS2"))
                                     (first tags))
