@@ -61,22 +61,23 @@
 (define-color-functions-from-map *highlights*)
 (define-color-functions-from-map *attributes*)
 (babashka.pods/load-pod 'retrogradeorbit/bootleg "0.1.9" '{:download-only nil, :cache true})
+(ns net.coruscation.espoir.main)
+(require '[babashka.pods :as pods])
+;; workaround for https://github.com/babashka/pods/issues/25
+(require '[clojure.zip])
+(def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9"))
 (require '[pod.retrogradeorbit.hickory.select :as hs])
-(ns net.coruscation.espoir.main
-  (:require [clojure.string :as str]
-            ;; for whatever reason this doesn't work
-            [pod.retrogradeorbit.hickory.select :as hs]
-            [pod.retrogradeorbit.bootleg.utils :as bootleg]
-            [clojure.term.colors :as term]
-            [clojure.java.io :as io]
-            [clojure.tools.cli :as cli]))
+(require '[clojure.string :as str])
+(require '[pod.retrogradeorbit.bootleg.utils :as bootleg])
+(require '[clojure.term.colors :as term])
+(require '[clojure.java.io :as io])
+(require '[clojure.tools.cli :as cli])
+(require '[babashka.pods :as pods])
 
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
 (def cli-options
-  [["[option]" "" "[descriptions]"
-    :default "[default]"]
-   ["-s" "--short" "Show results in a more concise format, omitting some information."
+  [["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
    ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
     :default false]
@@ -88,7 +89,8 @@
 
 (def ^:dynamic *options* (atom (cli/get-default-options cli-options)))
 
-(defn extract-string [tag]
+(defn extract-string [tag & {:keys [spacer]
+                             :or {spacer " "}}]
   (letfn [(inner [tag]
             (->> (cond
                    (string? tag) tag
@@ -98,11 +100,24 @@
          (conj [])
          flatten
          (remove #(= "" (str/trim %)))
-         (str/join " ")
+         (str/join spacer)
          str/trim)))
 
+(defn collapse-whitespace [st]
+  (.replaceAll st "\\s+" " "))
+
 (defn process-definition [tags]
-  (letfn [(process-meaning [tag]
+  (letfn [(remove-tooltip [tags]
+            (filter (fn [tag]
+                      (not (or (= (:class (:attrs tag)) "POS2")
+                               (= (:class (:attrs tag)) "conjugate"))))
+                    tags))
+          (extract-word [tags]
+            (as-> tags %
+              (remove-tooltip %)
+              (extract-string % :spacer "")
+              (collapse-whitespace %)))
+          (process-meaning [tag]
             (let [[_ explanation to-word]
                   (hs/select (hs/tag "td")
                              tag)]
@@ -124,8 +139,7 @@
                                        str/trim)
                :to-wd (some-> to-word
                               :content
-                              first
-                              str/trim)
+                              extract-word)
                :to-tooltip (some-> (hs/select (hs/class "POS2")
                                               tag)
                                    first
@@ -136,8 +150,7 @@
                             (first tags))
                  first
                  :content
-                 first
-                 str/trim)
+                 extract-word)
      :fr-tooltip (some-> (hs/select (hs/child (hs/class "FrWrd")
                                               (hs/class "POS2"))
                                     (first tags))
@@ -437,5 +450,7 @@
                                                      (nil? (System/getenv "NO_COLOR"))))]
                   (some->> (seq arguments)
                            (str/join " ")
-                           main))))))
+                           main)))))
+  (pods/unload-pod pod)
+  (shutdown-agents))
 (ns user (:require [net.coruscation.espoir.main])) (apply net.coruscation.espoir.main/-main *command-line-args*)
