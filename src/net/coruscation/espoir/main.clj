@@ -103,16 +103,11 @@
                                (hs/class "ToEx"))
                         %))
        flatten
-       (reduce (fn [result next]
-                 (if (seq (hs/select (hs/class "FrEx")
-                                     next))
-                   (conj result {:fr-ex (extract-string next)})
-                   (update result
-                           (dec (count result))
-                           (fn [item]
-                             (assoc item
-                                    :to-ex (extract-string next))))))
-               [])))
+       (map (fn [item]
+              (let [text (extract-string item)]
+                {:italic (seq (hs/select (hs/class "ToEx")
+                                         item))
+                 :text text})))))
 
 (defn process-wrd [wrd]
   (hs/select (hs/child (hs/tag "tbody")
@@ -246,16 +241,15 @@
         (print (str "(" meaning-in-to ") ")))
       (print (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
     (when (seq example-sentences)
-      (doseq [{fr-ex :fr-ex
-               to-ex :to-ex} example-sentences]
-        (println " " (term/yellow fr-ex))
-        (when to-ex (println " " ((comp italic term/yellow) to-ex)))))))
+      (doseq [{italic? :italic
+               text :text} example-sentences]
+        (println " " ((comp (if italic? italic identity) term/yellow) text))))))
 
 
 
 #_[{:title ""
     :definitions [{:definition {:fr-wd "" :fr-tooltip "" :meanings [{:meaning-in-fr "" :to-wd "" :to-tooltip ""}]}
-                   :example-sentences [{:fr-ex "" :to-ex ""}]}]}]
+                   :example-sentences [{:italic true :text ""}]}]}]
 (defn print-definitions [defs]
   (doseq [[index
            {:keys [title definitions]}] (map-indexed vector defs)]
@@ -284,7 +278,7 @@
 
 #_[{:title ""
     :definitions [{:definition {:fr-wd "" :fr-tooltip "" :meanings [{:meaning-in-fr "" :to-wd "" :to-tooltip ""}]}
-                   :example-sentences [{:fr-ex "" :to-ex ""}]}]}]
+                   :example-sentences [{:italic false :text ""}]}]}]
 (defn print-definitions-short [defs]
   (letfn [(process-def [{:keys [title definitions]}]
             (->> definitions
