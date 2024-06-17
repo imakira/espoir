@@ -14,7 +14,8 @@
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
 (def cli-options
-  [["-s" "--short" "Show results in a more concise format, omitting some information."
+  [["-h" "--help" "Show help messages" :default "[help]"]
+   ["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
    ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
     :default false]
@@ -23,8 +24,7 @@
    ["-I" "--inflections-only" "Only show inflection sections"
     :default false]
    ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
-    :default false]
-   ["-h" "--help"]])
+    :default false]])
 
 (def ^:dynamic *options* (atom (cli/get-default-options cli-options)))
 

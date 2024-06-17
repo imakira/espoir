@@ -31,19 +31,19 @@ nix run github:imakira/espoir -- espoir
 ** Usage
 
 #+BEGIN_SRC bash :exports results :results code
-espoir -h
+  ./espoir -h
 #+END_SRC
 
 #+RESULTS:
 #+begin_src bash
 Usage: espoir [options] words
 Options: 
-  [option]              [default]  [descriptions]
-  -s, --short           false      Show results in a more concise format, omitting some information.
-  -a, --all             false      Show all translation sections (only principal translations are shown by default)
-  -N, --no-inflections  false      Don't show inflection sections
-  -n, --no-color        false      Disable ascii color output, env NO_COLOR is also supported
-  -h, --help
+  -h, --help              [help]  Show help message
+  -s, --short             false   Show results in a more concise format, omitting some information.
+  -a, --all               false   Show all translation sections (only principal translations are shown by default)
+  -N, --no-inflections    false   Don't show inflection sections
+  -I, --inflections-only  false   Only show inflection sections
+  -n, --no-color          false   Disable ascii color output, env NO_COLOR is also supported
 #+end_src
 
 
