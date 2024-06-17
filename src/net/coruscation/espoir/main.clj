@@ -231,7 +231,7 @@
                          :content
                          (drop 1)
                          (drop-last (if (seq conjugations)
-                                      (+ 2 (count conjugations))
+                                      3
                                       1))
                          (partition-by (fn [element]
                                          (= :br (:tag element))))
