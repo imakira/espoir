@@ -20,6 +20,8 @@
     :default false]
    ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
+   ["-I" "--inflections-only" "Only show inflection sections"
+    :default false]
    ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
     :default false]
    ["-h" "--help"]])
@@ -334,7 +336,7 @@
 (defn print-word [word]
   (let [{{:keys [declensions conjugations]} :inflections
          defs :defs} word
-        {:keys [all short no-inflections]} @*options*]
+        {:keys [all short no-inflections inflections-only]} @*options*]
     (when (and (seq declensions)
                (not no-inflections))
       (print-declensions declensions)
@@ -343,14 +345,15 @@
                (not no-inflections))
       (print-conjugations conjugations)
       (println))
-    (let [defs (if (:all @*options*)
-                 defs
-                 (filter (fn [{:keys [title definitions]}]
-                           (= title "Principal Translations"))
-                         defs))]
-      (if (:short @*options*)
-        (print-definitions-short defs)
-        (print-definitions defs)))))
+    (when (not inflections-only)
+      (let [defs (if (:all @*options*)
+                   defs
+                   (filter (fn [{:keys [title definitions]}]
+                             (= title "Principal Translations"))
+                           defs))]
+        (if (:short @*options*)
+          (print-definitions-short defs)
+          (print-definitions defs))))))
 
 (defn main [query]
   (let [doc (-> (slurp (str "https://www.wordreference.com/fren/"
