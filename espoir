@@ -83,6 +83,8 @@
     :default false]
    ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
+   ["-I" "--inflections-only" "Only show inflection sections"
+    :default false]
    ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
     :default false]
    ["-h" "--help"]])
@@ -105,6 +107,30 @@
 
 (defn collapse-whitespace [st]
   (.replaceAll st "\\s+" " "))
+
+(defn indices-of [f coll]
+  (keep-indexed #(if (f %2) %1 nil) coll))
+
+(defn first-index-of [f coll]
+  (first (indices-of f coll)))
+
+(defn split-by [pred coll]
+  (let [index (first-index-of pred coll)]
+    (if (nil? index)
+      [coll []]
+      [(take index coll)
+       (drop (inc index) coll)])))
+
+(defn split-by-all [pred coll]
+  (loop [coll coll
+         result []]
+    (if (seq coll)
+      (let [[first second] (split-by pred coll) ]
+        (recur second
+               (if (seq first)
+                 (conj result first)
+                 result)))
+      result)))
 
 (defn process-definition [tags]
   (letfn [(remove-tooltip [tags]
@@ -166,16 +192,11 @@
                                (hs/class "ToEx"))
                         %))
        flatten
-       (reduce (fn [result next]
-                 (if (seq (hs/select (hs/class "FrEx")
-                                     next))
-                   (conj result {:fr-ex (extract-string next)})
-                   (update result
-                           (dec (count result))
-                           (fn [item]
-                             (assoc item
-                                    :to-ex (extract-string next))))))
-               [])))
+       (map (fn [item]
+              (let [text (extract-string item)]
+                {:italic (seq (hs/select (hs/class "ToEx")
+                                         item))
+                 :text text})))))
 
 (defn process-wrd [wrd]
   (hs/select (hs/child (hs/tag "tbody")
@@ -211,22 +232,24 @@
 
 
 (defn get-declension [elements]
-  (letfn [(process [[base _ {[word-class] :content} _ & inflections]]
-            {:base (extract-string base)
-             :word-class word-class
-             :declension
-             (->> inflections
-                  (partition 2)
-                  (map (fn [[genre-or-nombre-ele raw-inflection]]
-                         {:code (-> genre-or-nombre-ele
-                                    :content
-                                    first)
-                          :text (->> raw-inflection
-                                     (re-matches #":.*?(\p{IsAlphabetic}+).*")
-                                     second)})))})]
-    (some->> elements
-             (drop 2)
-             process)))
+  (if (string? (first elements))
+    {:annot (first elements)}
+    (letfn [(process [[base _ {[word-class] :content} _ & inflections]]
+              {:base (extract-string base)
+               :word-class word-class
+               :declension
+               (->> inflections
+                    (partition 2)
+                    (map (fn [[genre-or-nombre-ele raw-inflection]]
+                           {:code (-> genre-or-nombre-ele
+                                      :content
+                                      first)
+                            :text (->> raw-inflection
+                                       (re-matches #":.*?(\p{IsAlphabetic}+).*")
+                                       second)})))})]
+      (some->> elements
+               (drop 2)
+               process))))
 
 (defn get-conjugation [conjugations-doc]
   (let [[header & lists] conjugations-doc
@@ -263,15 +286,17 @@
         conjugations (some->> inflections-doc
                               (hs/select (hs/child (hs/class "otherWRD")
                                                    (hs/tag "dl")))
-                              (map (fn [item]
-                                     (->> item
-                                          :content
-                                          get-conjugation))))
+                              first
+                              :content
+                              (split-by-all
+                               (fn [item]
+                                 (= item "--------------")))
+                              (map get-conjugation))
         declensions (->> inflections-doc
                          :content
                          (drop 1)
                          (drop-last (if (seq conjugations)
-                                      (+ 2 (count conjugations))
+                                      3
                                       1))
                          (partition-by (fn [element]
                                          (= :br (:tag element))))
@@ -309,16 +334,15 @@
         (print (str "(" meaning-in-to ") ")))
       (print (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
     (when (seq example-sentences)
-      (doseq [{fr-ex :fr-ex
-               to-ex :to-ex} example-sentences]
-        (println " " (term/yellow fr-ex))
-        (when to-ex (println " " ((comp italic term/yellow) to-ex)))))))
+      (doseq [{italic? :italic
+               text :text} example-sentences]
+        (println " " ((comp (if italic? italic identity) term/yellow) text))))))
 
 
 
 #_[{:title ""
     :definitions [{:definition {:fr-wd "" :fr-tooltip "" :meanings [{:meaning-in-fr "" :to-wd "" :to-tooltip ""}]}
-                   :example-sentences [{:fr-ex "" :to-ex ""}]}]}]
+                   :example-sentences [{:italic true :text ""}]}]}]
 (defn print-definitions [defs]
   (doseq [[index
            {:keys [title definitions]}] (map-indexed vector defs)]
@@ -347,7 +371,7 @@
 
 #_[{:title ""
     :definitions [{:definition {:fr-wd "" :fr-tooltip "" :meanings [{:meaning-in-fr "" :to-wd "" :to-tooltip ""}]}
-                   :example-sentences [{:fr-ex "" :to-ex ""}]}]}]
+                   :example-sentences [{:italic false :text ""}]}]}]
 (defn print-definitions-short [defs]
   (letfn [(process-def [{:keys [title definitions]}]
             (->> definitions
@@ -377,14 +401,17 @@
 (defn print-declensions [declensions]
   (doseq [{base :base
            word-class :word-class
-           forms :declension} declensions]
-    (print (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
-    (->> forms
-         (map (fn [{code :code text :text}]
-                (str (term/blue code) ":" text)))
-         (str/join ", ")
-         print)
-    (print "\n")))
+           forms :declension
+           annot :annot} declensions]
+    (if annot
+      (println annot)
+      (do (print (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
+          (->> forms
+               (map (fn [{code :code text :text}]
+                      (str (term/blue code) ":" text)))
+               (str/join ", ")
+               print)
+          (print "\n")))))
 
 #_[{:infinitif "" :conjugations [{:form "" :descriptions [""]}]}]
 (defn print-conjugations [conjugations]
@@ -403,7 +430,7 @@
 (defn print-word [word]
   (let [{{:keys [declensions conjugations]} :inflections
          defs :defs} word
-        {:keys [all short no-inflections]} @*options*]
+        {:keys [all short no-inflections inflections-only]} @*options*]
     (when (and (seq declensions)
                (not no-inflections))
       (print-declensions declensions)
@@ -412,14 +439,15 @@
                (not no-inflections))
       (print-conjugations conjugations)
       (println))
-    (let [defs (if (:all @*options*)
-                 defs
-                 (filter (fn [{:keys [title definitions]}]
-                           (= title "Principal Translations"))
-                         defs))]
-      (if (:short @*options*)
-        (print-definitions-short defs)
-        (print-definitions defs)))))
+    (when (not inflections-only)
+      (let [defs (if (:all @*options*)
+                   defs
+                   (filter (fn [{:keys [title definitions]}]
+                             (= title "Principal Translations"))
+                           defs))]
+        (if (:short @*options*)
+          (print-definitions-short defs)
+          (print-definitions defs))))))
 
 (defn main [query]
   (let [doc (-> (slurp (str "https://www.wordreference.com/fren/"
