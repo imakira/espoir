@@ -169,22 +169,24 @@
 
 
 (defn get-declension [elements]
-  (letfn [(process [[base _ {[word-class] :content} _ & inflections]]
-            {:base (extract-string base)
-             :word-class word-class
-             :declension
-             (->> inflections
-                  (partition 2)
-                  (map (fn [[genre-or-nombre-ele raw-inflection]]
-                         {:code (-> genre-or-nombre-ele
-                                    :content
-                                    first)
-                          :text (->> raw-inflection
-                                     (re-matches #":.*?(\p{IsAlphabetic}+).*")
-                                     second)})))})]
-    (some->> elements
-             (drop 2)
-             process)))
+  (if (string? (first elements))
+    {:annot (first elements)}
+    (letfn [(process [[base _ {[word-class] :content} _ & inflections]]
+              {:base (extract-string base)
+               :word-class word-class
+               :declension
+               (->> inflections
+                    (partition 2)
+                    (map (fn [[genre-or-nombre-ele raw-inflection]]
+                           {:code (-> genre-or-nombre-ele
+                                      :content
+                                      first)
+                            :text (->> raw-inflection
+                                       (re-matches #":.*?(\p{IsAlphabetic}+).*")
+                                       second)})))})]
+      (some->> elements
+               (drop 2)
+               process))))
 
 (defn get-conjugation [conjugations-doc]
   (let [[header & lists] conjugations-doc
@@ -336,14 +338,17 @@
 (defn print-declensions [declensions]
   (doseq [{base :base
            word-class :word-class
-           forms :declension} declensions]
-    (print (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
-    (->> forms
-         (map (fn [{code :code text :text}]
-                (str (term/blue code) ":" text)))
-         (str/join ", ")
-         print)
-    (print "\n")))
+           forms :declension
+           annot :annot} declensions]
+    (if annot
+      (println annot)
+      (do (print (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
+          (->> forms
+               (map (fn [{code :code text :text}]
+                      (str (term/blue code) ":" text)))
+               (str/join ", ")
+               print)
+          (print "\n")))))
 
 #_[{:infinitif "" :conjugations [{:form "" :descriptions [""]}]}]
 (defn print-conjugations [conjugations]
