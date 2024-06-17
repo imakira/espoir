@@ -45,6 +45,30 @@
 (defn collapse-whitespace [st]
   (.replaceAll st "\\s+" " "))
 
+(defn indices-of [f coll]
+  (keep-indexed #(if (f %2) %1 nil) coll))
+
+(defn first-index-of [f coll]
+  (first (indices-of f coll)))
+
+(defn split-by [pred coll]
+  (let [index (first-index-of pred coll)]
+    (if (nil? index)
+      [coll []]
+      [(take index coll)
+       (drop (inc index) coll)])))
+
+(defn split-by-all [pred coll]
+  (loop [coll coll
+         result []]
+    (if (seq coll)
+      (let [[first second] (split-by pred coll) ]
+        (recur second
+               (if (seq first)
+                 (conj result first)
+                 result)))
+      result)))
+
 (defn process-definition [tags]
   (letfn [(remove-tooltip [tags]
             (filter (fn [tag]
@@ -197,10 +221,12 @@
         conjugations (some->> inflections-doc
                               (hs/select (hs/child (hs/class "otherWRD")
                                                    (hs/tag "dl")))
-                              (map (fn [item]
-                                     (->> item
-                                          :content
-                                          get-conjugation))))
+                              first
+                              :content
+                              (split-by-all
+                               (fn [item]
+                                 (= item "--------------")))
+                              (map get-conjugation))
         declensions (->> inflections-doc
                          :content
                          (drop 1)
