@@ -10,6 +10,7 @@
 (require '[clojure.java.io :as io])
 (require '[clojure.tools.cli :as cli])
 (require '[babashka.pods :as pods])
+(require '[org.httpkit.client :as http])
 
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
@@ -247,6 +248,10 @@
   {:inflections (get-inflections doc)
    :defs (->> doc
               (hs/select (hs/class "WRD"))
+              ((fn [wrds]
+                 (if (seq wrds)
+                   wrds
+                   (throw (ex-info "Word not found" {:type :word-not-found})))))
               (map process-wrd))})
 
 (defn print-definition [definition]
@@ -387,13 +392,32 @@
           (print-definitions defs))))))
 
 (defn main [query]
-  (let [doc (-> (slurp (str "https://www.wordreference.com/fren/"
-                            (java.net.URLEncoder/encode query)))
-                str/trim
-                (bootleg/convert-to :hickory-seq)
-                second)]
-    (->> (get-word doc)
-         print-word)))
+  (try
+    (let [reps @(http/get (str "https://www.wordreference.com/fren/"
+                               query))
+          doc (try (-> (:body reps)
+                       str/trim
+                       (bootleg/convert-to :hickory-seq)
+                       second)
+                   (catch Exception e
+                     (throw (ex-info "Word not found" {:type :word-not-found}))))
+          eng? (->> reps
+                    :opts
+                    :url
+                    (re-matches #"^.+://www.wordreference.com/enfr/.*$")
+                    boolean)]
+      (if eng?
+        (throw (ex-info "Word not found" {:type :word-not-found}))
+        (->> (get-word doc)
+             print-word)))
+    (catch Exception e
+      (case (:type (ex-data e))
+        :word-not-found (do
+                          (print (term/red "Word: "
+                                           ((comp term/bold term/green)
+                                            query)
+                                           " not found.")))
+        (throw e)))))
 
 (defn display-usage []
   (->> ["Usage: espoir [options] words"
