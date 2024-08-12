@@ -465,7 +465,7 @@
 (defn main [query]
   (try
     (let [reps @(http/get (str "https://www.wordreference.com/fren/"
-                               query))
+                               (java.net.URLEncoder/encode query)))
           doc (try (-> (:body reps)
                        str/trim
                        (bootleg/convert-to :hickory-seq)
@@ -484,10 +484,10 @@
     (catch Exception e
       (case (:type (ex-data e))
         :word-not-found (do
-                          (print (term/red "Word: "
-                                           ((comp term/bold term/green)
-                                            query)
-                                           " not found.")))
+                          (println (term/red "Word: "
+                                             ((comp term/bold term/green)
+                                              query)
+                                             " not found.")))
         (throw e)))))
 
 (defn display-usage []
