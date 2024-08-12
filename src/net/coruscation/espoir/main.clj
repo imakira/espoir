@@ -422,10 +422,10 @@
     (catch Exception e
       (case (:type (ex-data e))
         :word-not-found (do
-                          (print (term/red "Word: "
-                                           ((comp term/bold term/green)
-                                            query)
-                                           " not found.")))
+                          (println (term/red "Word: "
+                                             ((comp term/bold term/green)
+                                              query)
+                                             " not found.")))
         (throw e)))))
 
 (defn display-usage []
