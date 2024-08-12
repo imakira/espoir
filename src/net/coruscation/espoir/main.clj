@@ -6,6 +6,10 @@
 ;; for example, word ethno-masochisme will trigger an error
 ;; with unknown reasons.
 ;; and it will spam stderr with the full html content.
+;; ---
+;; ok, this doesn't work in babashka.
+;; as they rebind in *err* to @sci/err in sci.clj:80
+;; and sci/err isn't a dynamic variable, so you can't bind it
 (binding [*err* (new java.io.OutputStreamWriter (java.io.OutputStream/nullOutputStream))]
   (def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9")))
 (require '[pod.retrogradeorbit.hickory.select :as hs])
