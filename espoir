@@ -65,7 +65,12 @@
 (require '[babashka.pods :as pods])
 ;; workaround for https://github.com/babashka/pods/issues/25
 (require '[clojure.zip])
-(def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9"))
+;; ignore all err output from the pod
+;; for example, word ethno-masochisme will trigger an error
+;; with unknown reasons.
+;; and it will spam stderr with the full html content.
+(binding [*err* (new java.io.OutputStreamWriter (java.io.OutputStream/nullOutputStream))]
+  (def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9")))
 (require '[pod.retrogradeorbit.hickory.select :as hs])
 (require '[clojure.string :as str])
 (require '[pod.retrogradeorbit.bootleg.utils :as bootleg])
