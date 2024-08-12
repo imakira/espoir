@@ -403,7 +403,7 @@
 (defn main [query]
   (try
     (let [reps @(http/get (str "https://www.wordreference.com/fren/"
-                               query))
+                               (java.net.URLEncoder/encode query)))
           doc (try (-> (:body reps)
                        str/trim
                        (bootleg/convert-to :hickory-seq)
