@@ -24,7 +24,7 @@
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
 (def cli-options
-  [["-h" "--help" "Show help messages" :default false]
+  [["-h" "--help" "Show help messages" :default "[default]"]
    ["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
    ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
@@ -443,7 +443,11 @@
                             println)
                        (println)
                        (display-usage))
-      (:help options) (display-usage)
+      (or (and (:help options)
+               (not (= (:help options)
+                       "[default]")))
+          (empty? arguments))
+      (display-usage)
       :else (do (swap! *options* (constantly options))
                 (binding [term/*disable-colors* (or (:no-color options)
                                                     (not
