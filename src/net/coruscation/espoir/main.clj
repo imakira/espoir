@@ -422,7 +422,7 @@
     (catch Exception e
       (case (:type (ex-data e))
         :word-not-found (do
-                          (println (term/red "Word: "
+                          (println (term/red "Word "
                                              ((comp term/bold term/green)
                                               query)
                                              " not found.")))
