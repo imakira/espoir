@@ -32,13 +32,19 @@ nix run github:imakira/espoir -- espoir
 ```bash
 Usage: espoir [options] words
 Options: 
-  -h, --help              [help]  Show help message
-  -s, --short             false   Show results in a more concise format, omitting some information.
-  -a, --all               false   Show all translation sections (only principal translations are shown by default)
-  -N, --no-inflections    false   Don't show inflection sections
-  -I, --inflections-only  false   Only show inflection sections
-  -n, --no-color          false   Disable ascii color output, env NO_COLOR is also supported
+  -h, --help              [default]  Show help messages
+  -s, --short             false      Show results in a more concise format, omitting some information.
+  -a, --all               false      Show all translation sections (only principal translations are shown by default)
+  -N, --no-inflections    false      Don't show inflection sections
+  -I, --inflections-only  false      Only show inflection sections
+  -n, --no-color          false      Disable ascii color output, env NO_COLOR is also supported
 ```
+
+
+## TODO 
+
+-   English to French Support
+-   Conjugations of a Verb
 
 
 ## Screenshots
