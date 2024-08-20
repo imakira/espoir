@@ -31,12 +31,41 @@
     :default false]
    ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
+   ["-f" "--fr-to-en" "Force French to English lookup" :default false]
+   ["-e" "--en-to-fr" "Force English to French lookup" :default false]
    ["-I" "--inflections-only" "Only show inflection sections"
     :default false]
    ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
     :default false]])
 
 (def ^:dynamic *options* (atom (cli/get-default-options cli-options)))
+;; :fr or :en
+(def ^:dynamic *lang* :fr)
+
+(defn color-primary [& args]
+  (apply (if (= *lang* :fr)
+           term/green
+           term/blue)
+         args))
+
+(defn color-secondary [& args]
+  (apply (if (= *lang* :fr)
+           term/magenta
+           term/green)
+         args))
+
+(defn color-tip [& args]
+  (apply (if (= *lang* :fr)
+           term/blue
+           term/magenta)
+         args))
+
+(defn color-sentence [& args]
+  (apply (if (= *lang* :fr)
+           term/yellow
+           term/yellow)
+         args))
+
 
 (defn extract-string [tag & {:keys [spacer]
                              :or {spacer " "}}]
@@ -159,7 +188,10 @@
                                 (if (some-> next
                                             :attrs
                                             :id
-                                            (str/starts-with? "fren:"))
+                                            (str/starts-with?
+                                             (if (= *lang* :fr)
+                                               "fren:"
+                                               "enfr:")))
                                   (conj result [next])
                                   (update result
                                           (dec (count result))
@@ -266,7 +298,7 @@
 (defn print-definition [definition]
   (let [{{:keys [fr-wd fr-tooltip meanings]} :definition
          example-sentences :example-sentences} definition]
-    (print (str ((comp term/green term/bold) fr-wd) " " (term/blue fr-tooltip)":\n"))
+    (print (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
 
     (doseq [[index
              {meaning-in-fr :meaning-in-fr
@@ -277,7 +309,7 @@
       (print (term/grey (str "  " index ". ")))
       (when (not (str/blank? meaning-in-fr))
         (print (str (if meaning-in-fr
-                      (str "[" (term/magenta meaning-in-fr) "] ")
+                      (str "[" (color-secondary meaning-in-fr) "] ")
                       "")
                     "\n"))
         (print (str "     ")))
@@ -287,7 +319,7 @@
     (when (seq example-sentences)
       (doseq [{italic? :italic
                text :text} example-sentences]
-        (println " " ((comp (if italic? italic identity) term/yellow) text))))))
+        (println " " ((comp (if italic? italic identity) color-sentence) text))))))
 
 
 
@@ -308,7 +340,7 @@
 (defn print-definition-short [definition]
   (let [{{:keys [fr-tooltip meanings]} :definition}
         definition]
-    (str "  " (term/blue fr-tooltip)
+    (str "  " (color-tip fr-tooltip)
          ": "
          (->> meanings
               (map (fn [{meaning-in-to :meaning-in-to
@@ -330,7 +362,7 @@
                                  (:fr-wd (:definition definition))))
                  (map (fn [items]
                         (str
-                         ((comp term/bold term/green)
+                         ((comp term/bold color-primary)
                           (-> items
                               first :definition :fr-wd))
                          ":\n"
@@ -383,11 +415,13 @@
          defs :defs} word
         {:keys [all short no-inflections inflections-only]} @*options*]
     (when (and (seq declensions)
-               (not no-inflections))
+               (not no-inflections)
+               (not (= :en *lang*)))
       (print-declensions declensions)
       (println))
     (when (and (seq conjugations)
-               (not no-inflections))
+               (not no-inflections)
+               (not (= :en *lang*)))
       (print-conjugations conjugations)
       (println))
     (when (not inflections-only)
@@ -402,7 +436,11 @@
 
 (defn main [query]
   (try
-    (let [reps @(http/get (str "https://www.wordreference.com/fren/"
+    (let [{:keys [fr-to-en en-to-fr] } @*options*
+          reps @(http/get (str "https://www.wordreference.com/"
+                               (if en-to-fr
+                                 "enfr/"
+                                 "fren/")
                                (java.net.URLEncoder/encode query)))
           doc (try (-> (:body reps)
                        str/trim
@@ -415,8 +453,12 @@
                     :url
                     (re-matches #"^.+://www.wordreference.com/enfr/.*$")
                     boolean)]
-      (if eng?
-        (throw (ex-info "Word not found" {:type :word-not-found}))
+      (when (or (and fr-to-en
+                     eng?)
+                (and en-to-fr
+                     (not eng?)))
+        (throw (ex-info "Word not found" {:type :word-not-found})))
+      (binding [*lang* (if eng? :en :fr)]
         (->> (get-word doc)
              print-word)))
     (catch Exception e
