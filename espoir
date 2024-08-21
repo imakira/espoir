@@ -85,7 +85,6 @@
 
 (term/define-color-function :italic (str "\033[" 3 "m"))
 
-
 (def cli-options
   [["-h" "--help" "Show help messages" :default "[default]"]
    ["-s" "--short" "Show results in a more concise format, omitting some information."
@@ -94,8 +93,8 @@
     :default false]
    ["-N" "--no-inflections" "Don't show inflection sections"
     :default false]
-   ["-f" "--fr-to-en" "French to English lookup" :default false]
-   ["-e" "--en-to-fr" "English to French lookup" :default false]
+   ["-f" "--fr-to-en" "Force French to English lookup" :default false]
+   ["-e" "--en-to-fr" "Force English to French lookup" :default false]
    ["-I" "--inflections-only" "Only show inflection sections"
     :default false]
    ["-n" "--no-color" "Disable ascii color output, env NO_COLOR is also supported"
@@ -247,22 +246,21 @@
         meaning-tags (hs/select (hs/or (hs/class "even")
                                        (hs/class "odd"))
                                 wrd)]
-    (let [definitions
-          (reduce (fn [result next]
-                    (if (some-> next
-                                :attrs
-                                :id
-                                (str/starts-with?
-                                 (if (= *lang* :fr)
-                                   "fren:"
-                                   "enfr:")))
-                      (conj result [next])
-                      (update result
-                              (dec (count result))
-                              (fn [item]
-                                (conj item next)))))
-                  []
-                  meaning-tags)]
+    (let [definitions (reduce (fn [result next]
+                                (if (some-> next
+                                            :attrs
+                                            :id
+                                            (str/starts-with?
+                                             (if (= *lang* :fr)
+                                               "fren:"
+                                               "enfr:")))
+                                  (conj result [next])
+                                  (update result
+                                          (dec (count result))
+                                          (fn [item]
+                                            (conj item next)))))
+                              []
+                              meaning-tags)]
       {:title (-> title-tag
                   :attrs
                   :title)
@@ -531,7 +529,8 @@
                           (println (term/red "Word "
                                              ((comp term/bold term/green)
                                               query)
-                                             " not found.")))
+                                             " not found."))
+                          (System/exit 1))
         (throw e)))))
 
 (defn display-usage []

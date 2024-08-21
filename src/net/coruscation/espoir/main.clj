@@ -467,7 +467,8 @@
                           (println (term/red "Word "
                                              ((comp term/bold term/green)
                                               query)
-                                             " not found.")))
+                                             " not found."))
+                          (System/exit 1))
         (throw e)))))
 
 (defn display-usage []
