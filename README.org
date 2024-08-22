@@ -42,6 +42,8 @@ Options:
   -s, --short             false      Show results in a more concise format, omitting some information.
   -a, --all               false      Show all translation sections (only principal translations are shown by default)
   -N, --no-inflections    false      Don't show inflection sections
+  -f, --fr-to-en          false      Force French to English lookup
+  -e, --en-to-fr          false      Force English to French lookup
   -I, --inflections-only  false      Only show inflection sections
   -n, --no-color          false      Disable ascii color output, env NO_COLOR is also supported
 #+end_src
