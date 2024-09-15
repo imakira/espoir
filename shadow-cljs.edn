@@ -1,0 +1,7 @@
+;; shadow-cljs configuration
+{:deps true
+ :builds
+ {:script
+  {:target :node-script
+   :main net.coruscation.espoir.main/-main
+   :output-to "out/espoir.js"}}}

@@ -109,6 +109,29 @@ tags
 
 # End of https://www.toptal.com/developers/gitignore/api/clojure,emacs,visualstudiocode,vim
 
+node_modules/
+public/js
+
+/target
+/checkouts
+/src/gen
+
+pom.xml
+pom.xml.asc
+*.iml
+*.jar
+*.log
+.shadow-cljs
+.idea
+.lein-*
+.nrepl-*
+.DS_Store
+
+.hgignore
+.hg/
+
+
 __scratch.clj
+__scratch.cljs
 /result
 /TODO.org

@@ -1,27 +1,30 @@
-(ns net.coruscation.espoir.main)
-(require '[babashka.pods :as pods])
-;; workaround for https://github.com/babashka/pods/issues/25
-(require '[clojure.zip])
-;; ignore all err output from the pod
-;; for example, word ethno-masochisme will trigger an error
-;; with unknown reasons.
-;; and it will spam stderr with the full html content.
-;; ---
-;; ok, this doesn't work in babashka.
-;; as they rebind in *err* to @sci/err in sci.clj:80
-;; and sci/err isn't a dynamic variable, so you can't bind it
-(binding [*err* (new java.io.OutputStreamWriter (java.io.OutputStream/nullOutputStream))]
-  (def pod (pods/load-pod 'retrogradeorbit/bootleg "0.1.9")))
-(require '[pod.retrogradeorbit.hickory.select :as hs])
-(require '[clojure.string :as str])
-(require '[pod.retrogradeorbit.bootleg.utils :as bootleg])
-(require '[clojure.term.colors :as term])
-(require '[clojure.java.io :as io])
-(require '[clojure.tools.cli :as cli])
-(require '[babashka.pods :as pods])
-(require '[org.httpkit.client :as http])
+(ns net.coruscation.espoir.main
+  (:require
+   [hickory.select :as hs]
+   [hickory.core :as hk]
+   [clojure.string :as str]
+   [clojure.term.colors :as term]
+   [clojure.tools.cli :as cli]
+   [clojure.core.async :as a]
+   ["./helper.js" :as helper]))
 
-(term/define-color-function :italic (str "\033[" 3 "m"))
+(def ^:dynamic *print-channel* (a/chan))
+
+(def axios (js/require "axios"))
+(def process (js/require "process"))
+(def xmldom (js/require "xmldom"))
+
+#_(def prom (-> (axios.get "https://www.wordreference.com/fren/ethno-masochisme")
+                (.then (fn [resp] (tap> (js->clj resp))))))
+
+
+(defn http-get [url]
+  (a/go
+    (let [chan (a/chan)]
+      (-> (axios.get url)
+          (.then (fn [resp]
+                   (a/go (a/>! chan (js->clj resp :keywordize-keys true))))))
+      (a/<! chan))))
 
 (def cli-options
   [["-h" "--help" "Show help messages" :default "[default]"]
@@ -298,7 +301,7 @@
 (defn print-definition [definition]
   (let [{{:keys [fr-wd fr-tooltip meanings]} :definition
          example-sentences :example-sentences} definition]
-    (print (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
+    (helper/output (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
 
     (doseq [[index
              {meaning-in-fr :meaning-in-fr
@@ -306,20 +309,20 @@
               to-wd :to-wd
               to-tooltip :to-tooltip}]
             (map-indexed vector meanings)]
-      (print (term/grey (str "  " index ". ")))
+      (helper/output (term/grey (str "  " index ". ")))
       (when (not (str/blank? meaning-in-fr))
-        (print (str (if meaning-in-fr
-                      (str "[" (color-secondary meaning-in-fr) "] ")
-                      "")
-                    "\n"))
-        (print (str "     ")))
+        (helper/output (str (if meaning-in-fr
+                              (str "[" (color-secondary meaning-in-fr) "] ")
+                              "")
+                            "\n"))
+        (helper/output (str "     ")))
       (when (not (str/blank? meaning-in-to))
-        (print (str "(" meaning-in-to ") ")))
-      (print (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
+        (helper/output (str "(" meaning-in-to ") ")))
+      (helper/output (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
     (when (seq example-sentences)
       (doseq [{italic? :italic
                text :text} example-sentences]
-        (println " " ((comp (if italic? italic identity) color-sentence) text))))))
+        (println " " ((comp (if italic? term/italic identity) color-sentence) text))))))
 
 
 
@@ -333,7 +336,7 @@
     (doseq [[index definition] (map-indexed vector definitions)]
       (print-definition definition)
       (when (not (= index (- (count definitions) 1)))
-        (print "\n")))
+        (helper/output "\n")))
     (when (not (= index (- (count defs) 1)))
       (println))))
 
@@ -388,13 +391,13 @@
            annot :annot} declensions]
     (if annot
       (println annot)
-      (do (print (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
+      (do (helper/output (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
           (->> forms
                (map (fn [{code :code text :text}]
                       (str (term/blue code) ":" text)))
                (str/join ", ")
-               print)
-          (print "\n")))))
+               helper/output)
+          (helper/output "\n")))))
 
 #_[{:infinitif "" :conjugations [{:form "" :descriptions [""]}]}]
 (defn print-conjugations [conjugations]
@@ -435,41 +438,40 @@
           (print-definitions defs))))))
 
 (defn main [query]
-  (try
-    (let [{:keys [fr-to-en en-to-fr] } @*options*
-          reps @(http/get (str "https://www.wordreference.com/"
-                               (if en-to-fr
-                                 "enfr/"
-                                 "fren/")
-                               (java.net.URLEncoder/encode query)))
-          doc (try (-> (:body reps)
-                       str/trim
-                       (bootleg/convert-to :hickory-seq)
-                       second)
-                   (catch Exception e
-                     (throw (ex-info "Word not found" {:type :word-not-found}))))
-          eng? (->> reps
-                    :opts
-                    :url
-                    (re-matches #"^.+://www.wordreference.com/enfr/.*$")
-                    boolean)]
-      (when (or (and fr-to-en
-                     eng?)
-                (and en-to-fr
-                     (not eng?)))
-        (throw (ex-info "Word not found" {:type :word-not-found})))
-      (binding [*lang* (if eng? :en :fr)]
-        (->> (get-word doc)
-             print-word)))
-    (catch Exception e
-      (case (:type (ex-data e))
-        :word-not-found (do
-                          (println (term/red "Word "
-                                             ((comp term/bold term/green)
-                                              query)
-                                             " not found."))
-                          (System/exit 1))
-        (throw e)))))
+  (a/go
+    (try
+      (let [{:keys [fr-to-en en-to-fr] } @*options*
+            reps (a/<! (http-get (str "https://www.wordreference.com/"
+                                      (if en-to-fr
+                                        "enfr/"
+                                        "fren/")
+                                      query)))
+            doc (try (-> (:data reps)
+                         hk/parse
+                         hk/as-hickory
+                         second)
+                     (catch js/Error e
+                       (throw (ex-info "Word not found" {:type :word-not-found}))))
+            eng? (->> (aget (:config reps) "path")
+                      (re-matches #"^/enfr/.*$")
+                      boolean)]
+        (when (or (and fr-to-en
+                       eng?)
+                  (and en-to-fr
+                       (not eng?)))
+          (throw (ex-info "Word not found" {:type :word-not-found})))
+        (binding [*lang* (if eng? :en :fr)]
+          (->> (get-word doc)
+               print-word)))
+      (catch js/Error e
+        (case (:type (ex-data e))
+          :word-not-found (do
+                            (println (term/red "Word "
+                                               ((comp term/bold term/green)
+                                                query)
+                                               " not found."))
+                            (process.exit 1))
+          (throw e))))))
 
 (defn display-usage []
   (->> ["Usage: espoir [options] words"
@@ -478,6 +480,7 @@
        (str/join \newline)
        println))
 
+(set! js/DOMParser (.-DOMParserNoWarning helper))
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
     (cond
@@ -494,9 +497,15 @@
       :else (do (swap! *options* (constantly options))
                 (binding [term/*disable-colors* (or (:no-color options)
                                                     (not
-                                                     (nil? (System/getenv "NO_COLOR"))))]
+                                                     (nil? process.env.NO_COLOR)))]
                   (some->> (seq arguments)
                            (str/join " ")
-                           main)))))
-  (pods/unload-pod pod)
-  (shutdown-agents))
+                           main))))))
+
+
+#_(a/go
+    (a/<! (main "demo")))
+
+
+#_(a/go
+    (tap> (a/<! (http-get "https://www.wordreference.com/fren/ridiculous"))))
