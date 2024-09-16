@@ -6,17 +6,12 @@
    [clojure.term.colors :as term]
    [clojure.tools.cli :as cli]
    [clojure.core.async :as a]
-   ["./helper.js" :as helper]))
-
-(def ^:dynamic *print-channel* (a/chan))
+   ["process" :as process]))
 
 (def axios (js/require "axios"))
-(def process (js/require "process"))
 (def xmldom (js/require "xmldom"))
-
-#_(def prom (-> (axios.get "https://www.wordreference.com/fren/ethno-masochisme")
-                (.then (fn [resp] (tap> (js->clj resp))))))
-
+(def ^:dynamic *interactive* (atom false))
+#_(reset! *interactive* true)
 
 (defn http-get [url]
   (a/go
@@ -25,6 +20,9 @@
           (.then (fn [resp]
                    (a/go (a/>! chan (js->clj resp :keywordize-keys true))))))
       (a/<! chan))))
+
+(defn output [& args]
+  (process/stdout.write (str/join " " (map str args))))
 
 (def cli-options
   [["-h" "--help" "Show help messages" :default "[default]"]
@@ -226,8 +224,8 @@
                            {:code (-> genre-or-nombre-ele
                                       :content
                                       first)
-                            :text (->> raw-inflection
-                                       (re-matches #":.*?(\p{IsAlphabetic}+).*")
+                            :text (->> (doto raw-inflection tap>)
+                                       (re-matches #"(?u):.*?(\p{L}+).*")
                                        second)})))})]
       (some->> elements
                (drop 2)
@@ -301,7 +299,7 @@
 (defn print-definition [definition]
   (let [{{:keys [fr-wd fr-tooltip meanings]} :definition
          example-sentences :example-sentences} definition]
-    (helper/output (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
+    (output (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
 
     (doseq [[index
              {meaning-in-fr :meaning-in-fr
@@ -309,16 +307,16 @@
               to-wd :to-wd
               to-tooltip :to-tooltip}]
             (map-indexed vector meanings)]
-      (helper/output (term/grey (str "  " index ". ")))
+      (output (term/grey (str "  " index ". ")))
       (when (not (str/blank? meaning-in-fr))
-        (helper/output (str (if meaning-in-fr
-                              (str "[" (color-secondary meaning-in-fr) "] ")
-                              "")
-                            "\n"))
-        (helper/output (str "     ")))
+        (output (str (if meaning-in-fr
+                       (str "[" (color-secondary meaning-in-fr) "] ")
+                       "")
+                     "\n"))
+        (output (str "     ")))
       (when (not (str/blank? meaning-in-to))
-        (helper/output (str "(" meaning-in-to ") ")))
-      (helper/output (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
+        (output (str "(" meaning-in-to ") ")))
+      (output (str (term/bold to-wd) " " #_(term/blue to-tooltip) "\n")))
     (when (seq example-sentences)
       (doseq [{italic? :italic
                text :text} example-sentences]
@@ -336,7 +334,7 @@
     (doseq [[index definition] (map-indexed vector definitions)]
       (print-definition definition)
       (when (not (= index (- (count definitions) 1)))
-        (helper/output "\n")))
+        (output "\n")))
     (when (not (= index (- (count defs) 1)))
       (println))))
 
@@ -391,13 +389,13 @@
            annot :annot} declensions]
     (if annot
       (println annot)
-      (do (helper/output (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
+      (do (output (str (term/bold "Inflections") " of " (term/bold base) "[" (term/blue word-class) "]: "))
           (->> forms
                (map (fn [{code :code text :text}]
                       (str (term/blue code) ":" text)))
                (str/join ", ")
-               helper/output)
-          (helper/output "\n")))))
+               output)
+          (output "\n")))))
 
 #_[{:infinitif "" :conjugations [{:form "" :descriptions [""]}]}]
 (defn print-conjugations [conjugations]
@@ -448,11 +446,10 @@
                                       query)))
             doc (try (-> (:data reps)
                          hk/parse
-                         hk/as-hickory
-                         second)
+                         hk/as-hickory)
                      (catch js/Error e
                        (throw (ex-info "Word not found" {:type :word-not-found}))))
-            eng? (->> (aget (:config reps) "path")
+            eng? (->> (aget (:request reps) "path")
                       (re-matches #"^/enfr/.*$")
                       boolean)]
         (when (or (and fr-to-en
@@ -460,7 +457,10 @@
                   (and en-to-fr
                        (not eng?)))
           (throw (ex-info "Word not found" {:type :word-not-found})))
-        (binding [*lang* (if eng? :en :fr)]
+        (binding [*lang* (if eng? :en :fr)
+                  term/*disable-colors* (or (:no-color @*options*)
+                                            (not
+                                             (nil? (aget process/env "NO_COLOR"))))]
           (->> (get-word doc)
                print-word)))
       (catch js/Error e
@@ -470,7 +470,8 @@
                                                ((comp term/bold term/green)
                                                 query)
                                                " not found."))
-                            (process.exit 1))
+                            (when-not @*interactive*
+                              (process/exit 1)))
           (throw e))))))
 
 (defn display-usage []
@@ -480,7 +481,13 @@
        (str/join \newline)
        println))
 
-(set! js/DOMParser (.-DOMParserNoWarning helper))
+(defn ^:export DOMParserNoWarning [& rest]
+  (xmldom.DOMParser. #js {:locator {}
+                          :errorHandler #()
+                          :error #()
+                          :fatalError #(js/console.error %)}))
+
+(set! js/DOMParser DOMParserNoWarning)
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
     (cond
@@ -495,17 +502,13 @@
           (empty? arguments))
       (display-usage)
       :else (do (swap! *options* (constantly options))
-                (binding [term/*disable-colors* (or (:no-color options)
-                                                    (not
-                                                     (nil? process.env.NO_COLOR)))]
-                  (some->> (seq arguments)
-                           (str/join " ")
-                           main))))))
+                (some->> (seq arguments)
+                         (str/join " ")
+                         main)))))
 
 
 #_(a/go
-    (a/<! (main "demo")))
-
+    (a/<! (main "retraite")))
 
 #_(a/go
-    (tap> (a/<! (http-get "https://www.wordreference.com/fren/ridiculous"))))
+    (a/<! (main "ridiculous")))
