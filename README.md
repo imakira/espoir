@@ -8,16 +8,12 @@
 ## Installing
 
 
-### Manuall Install
+### Using npm
 
-1.  Install [babashka](https://github.com/babashka/babashka)
-2.  Save [espoir](https://raw.githubusercontent.com/imakira/espoir/main/espoir) somewhere and run it!  
-    
-    ```bash
-    curl https://raw.githubusercontent.com/imakira/espoir/main/espoir > espoir
-    chmod +x espoir
-    ./espoir espoir
-    ```
+```bash
+npm -g @imakira/espoir
+espoir espoir
+```
 
 
 ### Using Nix
@@ -45,7 +41,7 @@ Options:
 
 ## TODO 
 
--   English to French Support
+-   [DONE] English to French Support
 -   Conjugations of a Verb
 
 
@@ -59,4 +55,9 @@ Options:
 
 ### Concise Format
 
-![img](screenshots/concise.png)
+![img](screenshots/concise.png)  
+
+
+### English to French
+
+![img](screenshots/en-to-fr.png)

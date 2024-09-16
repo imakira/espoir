@@ -1,7 +1,7 @@
 {
-  "name": "espoir-dictionary",
+  "name": "@imakira/espoir",
   "version": "0.0.1",
-  "private": true,
+  "private": false,
   "scripts": {
     "build": "shadow-cljs release script"
   },

@@ -11,16 +11,12 @@ espoir means "hope" in French.
 
 ** Installing
 
-*** Manuall Install
+*** Using npm
 
-1. Install [[https://github.com/babashka/babashka][babashka]]
-2. Save [[https://raw.githubusercontent.com/imakira/espoir/main/espoir][espoir]] somewhere and run it!
-
-   #+BEGIN_SRC bash
-     curl https://raw.githubusercontent.com/imakira/espoir/main/espoir > espoir
-     chmod +x espoir
-     ./espoir espoir
-   #+END_SRC
+#+BEGIN_SRC bash
+npm -g @imakira/espoir
+espoir espoir
+#+END_SRC
 
 *** Using Nix
 
@@ -31,7 +27,7 @@ nix run github:imakira/espoir -- espoir
 ** Usage
 
 #+BEGIN_SRC bash :exports results :results code
-  ./espoir -h
+  npm exec -- espoir -h
 #+END_SRC
 
 #+RESULTS:
@@ -51,7 +47,7 @@ Options:
 
 ** TODO
 
-- English to French Support
+- [DONE] English to French Support
 - Conjugations of a Verb
 
 ** Screenshots
@@ -63,3 +59,7 @@ Options:
 *** Concise Format
 
 [[file:screenshots/concise.png]]
+
+*** English to French
+
+[[file:screenshots/en-to-fr.png]]
