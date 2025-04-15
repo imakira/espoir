@@ -43,6 +43,12 @@
 ;; :fr or :en
 (def ^:dynamic *lang* :fr)
 
+(defn color-head [& args]
+  (apply (if (= *lang* :fr)
+           term/red
+           term/blue)
+         args))
+
 (defn color-primary [& args]
   (apply (if (= *lang* :fr)
            term/green
@@ -286,8 +292,13 @@
     {:declensions declensions
      :conjugations conjugations}))
 
+(defn get-pron [doc]
+  (when-let [pronDom (first (hs/select (hs/id "pronWR") doc))]
+    (first (:content pronDom))))
+
 (defn get-word [doc]
-  {:inflections (get-inflections doc)
+  {:pron (get-pron doc)
+   :inflections (get-inflections doc)
    :defs (->> doc
               (hs/select (hs/class "WRD"))
               ((fn [wrds]
@@ -296,10 +307,18 @@
                    (throw (ex-info "Word not found" {:type :word-not-found})))))
               (map process-wrd))})
 
+(defn print-pron [query pron]
+  (output (str ((comp color-head term/bold)
+                query)
+               "  "
+               ((comp color-tip term/italic)
+                pron)
+               "\n")))
+
 (defn print-definition [definition]
   (let [{{:keys [fr-wd fr-tooltip meanings]} :definition
          example-sentences :example-sentences} definition]
-    (output (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip)":\n"))
+    (output (str ((comp color-primary term/bold) fr-wd) " " (color-tip fr-tooltip) ":\n"))
 
     (doseq [[index
              {meaning-in-fr :meaning-in-fr
@@ -411,10 +430,12 @@
          (str/join "\n")
          println)))
 
-(defn print-word [word]
+(defn print-word [query word]
   (let [{{:keys [declensions conjugations]} :inflections
-         defs :defs} word
+         defs :defs
+         pron :pron} word
         {:keys [all short no-inflections inflections-only]} @*options*]
+    (when pron (print-pron query pron))
     (when (and (seq declensions)
                (not no-inflections)
                (not (= :en *lang*)))
@@ -462,7 +483,7 @@
                                             (not
                                              (nil? (aget process/env "NO_COLOR"))))]
           (->> (get-word doc)
-               print-word)))
+               (print-word query))))
       (catch js/Error e
         (case (:type (ex-data e))
           :word-not-found (do
