@@ -26,6 +26,8 @@
 
 (def cli-options
   [["-h" "--help" "Show help messages" :default "[default]"]
+   ["-g" "--conjugation" "Get conjugations of a verb"
+    :default false]
    ["-s" "--short" "Show results in a more concise format, omitting some information."
     :default false]
    ["-a" "--all" "Show all translation sections (only principal translations are shown by default)"
@@ -456,6 +458,67 @@
           (print-definitions-short defs)
           (print-definitions defs))))))
 
+(defn get-conj-non-finite [dom]
+  (let [data-tuple (take 4 (-> (hs/select (hs/descendant (hs/id "conjtable")
+                                                         (hs/tag "td"))
+                                          dom)
+                               second
+                               extract-string
+                               (str/split #" ")))]
+    (->> data-tuple
+         (map vector [:infinitif :present :passe :pronominale])
+         (into {}))))
+
+(defn keywordize-label [label]
+  (-> label
+      (str/replace "é" "e")
+      (str/replace " " "-")
+      str/lower-case
+      keyword))
+
+(defn get-conj-finite [dom]
+  (->> (hs/select (hs/class "aa")
+                  dom)
+       (map (fn [section]
+              (->> (-> (hs/select (hs/tag "table")
+                                  section))
+                   (map (fn [col]
+                          [(-> (hs/select (hs/tag "tr") col)
+                               first
+                               extract-string
+                               str/trim
+                               keywordize-label)
+                           (->> (hs/select (hs/tag "td")
+                                           col)
+                                (map (fn [item]
+                                       (let [value (extract-string item :spacer "")
+                                             highlight? (seq (hs/select (hs/tag "b")
+                                                                        item))]
+                                         (merge {:value value}
+                                                (when highlight?
+                                                  {:highlight (extract-string (hs/select (hs/tag "b")
+                                                                                         item))
+                                                   :suffix (-> item :content second)})))))
+                                (map vector [:1s :2s :3s :1m :2m :3m])
+                                (into {}))]))
+                   (into {}))))
+       (map vector [:indicatif :composee :subjonctif :conditionnel :imperatif])
+       (into {})))
+
+(defn get-conj-conjugations [dom]
+  )
+
+(defn get-conj [query]
+  (a/go
+    (let [reps (a/<! (http-get
+                      (str
+                       "https://www.wordreference.com/conj/frverbs.aspx?v="
+                       query)))
+          dom (-> (:data reps)
+                  hk/parse
+                  hk/as-hickory)]
+      )))
+
 (defn main [query]
   (a/go
     (try
@@ -512,16 +575,24 @@
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
     (cond
-      (seq errors) (do (->> errors
-                            (str/join \newline)
-                            println)
-                       (println)
-                       (display-usage))
+      (seq errors)
+      (do (->> errors
+               (str/join \newline)
+               println)
+          (println)
+          (display-usage))
+
       (or (and (:help options)
                (not (= (:help options)
                        "[default]")))
           (empty? arguments))
       (display-usage)
+
+      (:conjugation options)
+      (get-conj (some->> (seq arguments)
+                         (str/join " ")
+                         main))
+
       :else (do (swap! *options* (constantly options))
                 (some->> (seq arguments)
                          (str/join " ")
