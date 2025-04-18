@@ -571,7 +571,7 @@
                          :default)))))
 
 (defn get-conj-non-finite [dom]
-  (let [data-tuple (->> (hs/select (hs/descendant (hs/id "conjtable")
+  (let [data-tuple (some->> (hs/select (hs/descendant (hs/id "conjtable")
                                                   (hs/tag "td"))
                                    dom)
                         second
@@ -588,13 +588,15 @@
                                                (str/trim x)
                                                x))
                                            (get-conj-parse-item item))})))]
+    (if (nil? data-tuple)
+      {}
     (->> data-tuple
          (map vector non-finite-conjugation)
-         (into (array-map)))))
+           (into (array-map))))))
 
 
 (defn get-conj-finite [dom]
-  (->> (hs/select (hs/class "aa")
+  (some->> (hs/select (hs/class "aa")
                   dom)
        (map (fn [section]
               (let [personne-labels (->> section
@@ -722,9 +724,13 @@
                                           (not
                                            (nil? (aget process/env "NO_COLOR"))))]
         (let [conjugations (get-conj-conjugations dom)]
-          (print-non-finite-conjugations conjugations)
+          (if (empty? conjugations)
+	    (println (term/red "Conjugations for word "
+                               (term/bold (term/green query))
+                               " can't be found"))
+            (do (print-non-finite-conjugations conjugations)
           (output "\n")
-          (print-finite-conjugations conjugations))))))
+                (print-finite-conjugations conjugations))))))))
 
 
 (defn main [query]
