@@ -572,62 +572,62 @@
 
 (defn get-conj-non-finite [dom]
   (let [data-tuple (some->> (hs/select (hs/descendant (hs/id "conjtable")
-                                                  (hs/tag "td"))
-                                   dom)
-                        second
-                        :content
-                        (split-by-all (fn [item]
-                                        (and (map? item)
-                                             (= (:tag item)
-                                                :br))))
-                        (map
-                         (fn [item]
-                           {:text (extract-string item :spacer "")
-                            :richtext (map (fn [x]
-                                             (if (string? x)
-                                               (str/trim x)
-                                               x))
-                                           (get-conj-parse-item item))})))]
+                                                      (hs/tag "td"))
+                                       dom)
+                            second
+                            :content
+                            (split-by-all (fn [item]
+                                            (and (map? item)
+                                                 (= (:tag item)
+                                                    :br))))
+                            (map
+                             (fn [item]
+                               {:text (extract-string item :spacer "")
+                                :richtext (map (fn [x]
+                                                 (if (string? x)
+                                                   (str/trim x)
+                                                   x))
+                                               (get-conj-parse-item item))})))]
     (if (nil? data-tuple)
       {}
-    (->> data-tuple
-         (map vector non-finite-conjugation)
+      (->> data-tuple
+           (map vector non-finite-conjugation)
            (into (array-map))))))
 
 
 (defn get-conj-finite [dom]
   (some->> (hs/select (hs/class "aa")
-                  dom)
-       (map (fn [section]
-              (let [personne-labels (->> section
-                                         (hs/select (hs/tag "table"))
-                                         first
-                                         (hs/select (hs/tag "th"))
-                                         (drop 1)
-                                         (map extract-string ))]
-                {:personne-labels personne-labels
-                 :data
-                 (->> (-> (hs/select (hs/tag "table")
-                                     section))
-                      (map (fn [col]
-                             (let [label (-> (hs/select (hs/tag "tr") col)
+                      dom)
+           (map (fn [section]
+                  (let [personne-labels (->> section
+                                             (hs/select (hs/tag "table"))
                                              first
-                                             extract-string
-                                             str/trim)]
-                               [(keywordize-label label)
-                                {:label label
-                                 :data
-                                 (->> (hs/select (hs/tag "td")
-                                                 col)
-                                      (map (fn [item]
-                                             (let [text (extract-string item :spacer "")]
-                                               {:text text
-                                                :richtext (get-conj-parse-item item)})))
-                                      (map vector personne)
-                                      (into (array-map)))}])))
-                      (into (array-map)))})))
-       (map vector finite-conjugation)
-       (into (array-map))))
+                                             (hs/select (hs/tag "th"))
+                                             (drop 1)
+                                             (map extract-string ))]
+                    {:personne-labels personne-labels
+                     :data
+                     (->> (-> (hs/select (hs/tag "table")
+                                         section))
+                          (map (fn [col]
+                                 (let [label (-> (hs/select (hs/tag "tr") col)
+                                                 first
+                                                 extract-string
+                                                 str/trim)]
+                                   [(keywordize-label label)
+                                    {:label label
+                                     :data
+                                     (->> (hs/select (hs/tag "td")
+                                                     col)
+                                          (map (fn [item]
+                                                 (let [text (extract-string item :spacer "")]
+                                                   {:text text
+                                                    :richtext (get-conj-parse-item item)})))
+                                          (map vector personne)
+                                          (into (array-map)))}])))
+                          (into (array-map)))})))
+           (map vector finite-conjugation)
+           (into (array-map))))
 
 (defn get-conj-conjugations [dom]
   (merge (get-conj-finite dom)
@@ -729,7 +729,7 @@
                                (term/bold (term/green query))
                                " can't be found"))
             (do (print-non-finite-conjugations conjugations)
-          (output "\n")
+                (output "\n")
                 (print-finite-conjugations conjugations))))))))
 
 
