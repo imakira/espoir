@@ -29,6 +29,7 @@ nix run github:imakira/espoir -- espoir
 Usage: espoir [options] words
 Options: 
   -h, --help              [default]  Show help messages
+  -g, --conjugation       false      Get conjugations of a verb
   -s, --short             false      Show results in a more concise format, omitting some information.
   -a, --all               false      Show all translation sections (only principal translations are shown by default)
   -N, --no-inflections    false      Don't show inflection sections
@@ -42,7 +43,7 @@ Options:
 ## TODO 
 
 -   [DONE] English to French Support
--   Conjugations of a Verb
+-   [DONE] Conjugations of a Verb
 
 
 ## Screenshots

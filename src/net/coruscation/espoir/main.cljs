@@ -6,7 +6,9 @@
    [clojure.term.colors :as term]
    [clojure.tools.cli :as cli]
    [clojure.core.async :as a]
-   ["process" :as process]))
+   [cljs.math :as math]
+   ["process" :as process]
+   [goog.string :as gstr]))
 
 (def axios (js/require "axios"))
 (def xmldom (js/require "xmldom"))
@@ -116,6 +118,46 @@
                  (conj result first)
                  result)))
       result)))
+
+(defn str-len-nocolor [str]
+  (count (str/replace str #"\x1b\[[0-9;]*m(?:\x1b\[K)?" "")))
+
+(defn string-repeat [n s]
+  (apply str (repeat n s)))
+
+(defn text-align-left [strs]
+  (let [length (apply max (map str-len-nocolor strs))]
+    (map (fn [s]
+           (str s (string-repeat (- length (str-len-nocolor s)) " ")))
+         strs)))
+
+(defn text-align-right [strs]
+  (let [length (apply max (map str-len-nocolor strs))]
+    (map (fn [s]
+           (str (string-repeat (- length (str-len-nocolor s)) " ")
+                s))
+         strs)))
+
+(defn text-align-center [strs]
+  (let [length (apply max (map str-len-nocolor strs))]
+    (map (fn [s]
+           (str (string-repeat (math/floor (/ (- length (str-len-nocolor s))
+                                              2))
+                               " ")
+                s
+                (string-repeat (math/ceil (/ (- length (str-len-nocolor s))
+                                             2))
+                               " ")))
+         strs)))
+
+(defn text-connect [strs-list padding]
+  (let [padding (if (number? padding)
+                  (string-repeat padding " ")
+                  padding)]
+    (apply map (fn [& strs]
+                 (str/join padding strs))
+           strs-list)))
+
 
 (defn process-definition [tags]
   (letfn [(remove-tooltip [tags]
@@ -232,7 +274,7 @@
                            {:code (-> genre-or-nombre-ele
                                       :content
                                       first)
-                            :text (->> (doto raw-inflection tap>)
+                            :text (->> raw-inflection
                                        (re-matches #"(?u):.*?(\p{L}+).*")
                                        second)})))})]
       (some->> elements
@@ -458,17 +500,6 @@
           (print-definitions-short defs)
           (print-definitions defs))))))
 
-(defn get-conj-non-finite [dom]
-  (let [data-tuple (take 4 (-> (hs/select (hs/descendant (hs/id "conjtable")
-                                                         (hs/tag "td"))
-                                          dom)
-                               second
-                               extract-string
-                               (str/split #" ")))]
-    (->> data-tuple
-         (map vector [:infinitif :present :passe :pronominale])
-         (into {}))))
-
 (defn keywordize-label [label]
   (-> label
       (str/replace "é" "e")
@@ -476,37 +507,206 @@
       str/lower-case
       keyword))
 
+(def personne [:1s :2s :3s :1m :2m :3m])
+(def non-finite-conjugation-name-map (into (array-map)
+                                           [[:infinitif "infinitif"]
+                                            [:present "participe présent"]
+                                            [:passe "participe passé"]
+                                            [:pronominale "forme pronominale"]]))
+(def non-finite-conjugation (keys non-finite-conjugation-name-map))
+
+(def finite-conjugation-name-map (into (array-map)
+                                       [[:indicatif "indicatif"]
+                                        [:composee "formes composées / compound tenses"]
+                                        [:subjonctif "subjonctif"]
+                                        [:conditionnel "conditionnel"]
+                                        [:imperatif "impératif"]]))
+
+(def finite-conjugation (keys finite-conjugation-name-map))
+
+(defn get-conj-parse-item [dom]
+  (letfn [(cal [dom]
+            (cond (string? dom)
+                  (if (= (str/trim dom)
+                         "")
+                    ""
+                    dom)
+
+                  (sequential? dom)
+                  (map cal dom)
+
+                  (= (:tag dom) :span)
+                  [:antiquated (cal (:content dom))]
+
+                  (= (:tag dom) :b)
+                  [:irregular (cal (:content dom))]
+
+                  (= (:tag dom) :i)
+                  [:defect (cal (:content dom))]
+
+                  (= (:tag dom) :a)
+                  [:highlight (cal (:content dom))]))
+          (normalize [data modifier]
+            (cond (string? data)
+                  (if (= modifier :default)
+                    [data]
+                    [[modifier data]])
+
+                  (empty? data)
+                  []
+
+                  (keyword? (first data))
+                  (normalize (drop 1 data) (first data))
+
+                  :else
+                  (apply concat (map (fn [item]
+                                       (normalize item modifier))
+                                     data))))]
+    (into [] (filter
+              (fn [item]
+                (not (empty? item)))
+              (normalize (cal (if (map? dom)
+                                (:content dom)
+                                dom))
+                         :default)))))
+
+(defn get-conj-non-finite [dom]
+  (let [data-tuple (->> (hs/select (hs/descendant (hs/id "conjtable")
+                                                  (hs/tag "td"))
+                                   dom)
+                        second
+                        :content
+                        (split-by-all (fn [item]
+                                        (and (map? item)
+                                             (= (:tag item)
+                                                :br))))
+                        (map
+                         (fn [item]
+                           {:text (extract-string item :spacer "")
+                            :richtext (map (fn [x]
+                                             (if (string? x)
+                                               (str/trim x)
+                                               x))
+                                           (get-conj-parse-item item))})))]
+    (->> data-tuple
+         (map vector non-finite-conjugation)
+         (into (array-map)))))
+
+
 (defn get-conj-finite [dom]
   (->> (hs/select (hs/class "aa")
                   dom)
        (map (fn [section]
-              (->> (-> (hs/select (hs/tag "table")
-                                  section))
-                   (map (fn [col]
-                          [(-> (hs/select (hs/tag "tr") col)
-                               first
-                               extract-string
-                               str/trim
-                               keywordize-label)
-                           (->> (hs/select (hs/tag "td")
-                                           col)
-                                (map (fn [item]
-                                       (let [value (extract-string item :spacer "")
-                                             highlight? (seq (hs/select (hs/tag "b")
-                                                                        item))]
-                                         (merge {:value value}
-                                                (when highlight?
-                                                  {:highlight (extract-string (hs/select (hs/tag "b")
-                                                                                         item))
-                                                   :suffix (-> item :content second)})))))
-                                (map vector [:1s :2s :3s :1m :2m :3m])
-                                (into {}))]))
-                   (into {}))))
-       (map vector [:indicatif :composee :subjonctif :conditionnel :imperatif])
-       (into {})))
+              (let [personne-labels (->> section
+                                         (hs/select (hs/tag "table"))
+                                         first
+                                         (hs/select (hs/tag "th"))
+                                         (drop 1)
+                                         (map extract-string ))]
+                {:personne-labels personne-labels
+                 :data
+                 (->> (-> (hs/select (hs/tag "table")
+                                     section))
+                      (map (fn [col]
+                             (let [label (-> (hs/select (hs/tag "tr") col)
+                                             first
+                                             extract-string
+                                             str/trim)]
+                               [(keywordize-label label)
+                                {:label label
+                                 :data
+                                 (->> (hs/select (hs/tag "td")
+                                                 col)
+                                      (map (fn [item]
+                                             (let [text (extract-string item :spacer "")]
+                                               {:text text
+                                                :richtext (get-conj-parse-item item)})))
+                                      (map vector personne)
+                                      (into (array-map)))}])))
+                      (into (array-map)))})))
+       (map vector finite-conjugation)
+       (into (array-map))))
 
 (defn get-conj-conjugations [dom]
-  )
+  (merge (get-conj-finite dom)
+         (get-conj-non-finite dom)))
+
+(defn get-conjugation-item-string [{:keys [text richtext]}]
+  (str/join (map (fn [text]
+                   (cond (string? text)
+                         text
+
+                         (= (first text)
+                            :antiquated)
+                         (term/white (second text))
+
+                         (= (first text)
+                            :irregular)
+                         (term/blue (second text))
+
+                         (= (first text)
+                            :defect)
+                         (term/magenta (second text))
+
+                         (= (first text)
+                            :highlight)
+                         (term/blue (second text))))
+                 richtext)))
+
+
+(defn get-finite-conjugations-section-strs [section-name {:keys [personne-labels data]}]
+  (let [data (vals data)]
+    (let [str-list (text-connect
+                    (concat [(text-align-center (concat
+                                                 [(term/underline (term/green (->> data
+                                                                                   first
+                                                                                   :label)))]
+                                                 (text-connect
+                                                  [(text-align-right (map term/white personne-labels))
+                                                   (text-align-left
+                                                    (->> data
+                                                         first
+                                                         :data
+                                                         vals
+                                                         (map get-conjugation-item-string)))]
+                                                  1)))]
+                            (->> data
+                                 (drop 1)
+                                 (map (fn [col]
+                                        (text-align-left
+                                         (concat [(term/underline (term/green (:label col)))]
+                                                 (->> col
+                                                      :data
+                                                      vals
+                                                      (map get-conjugation-item-string))))))))
+                    2)]
+      (concat [(term/bold (term/red section-name))]
+              str-list))))
+
+(defn print-non-finite-conjugations [conjugations]
+  (doseq [i (text-connect [(repeat (count non-finite-conjugation)
+                                   (string-repeat 2 " " ))
+                           (text-connect
+                            [(text-align-right (map (fn [key]
+                                                      (term/bold
+                                                       (str (key non-finite-conjugation-name-map) ":")))
+                                                    non-finite-conjugation))
+                             (text-align-left (map (fn [key]
+                                                     (get-conjugation-item-string (key conjugations)))
+                                                   non-finite-conjugation))]
+                            2)]
+                          "")]
+    (output (str i "\n"))))
+
+(defn print-finite-conjugations [conjugations]
+  (doseq [str (text-align-center
+               (apply concat
+                      (for [section-id finite-conjugation]
+                        (concat (get-finite-conjugations-section-strs
+                                 (section-id finite-conjugation-name-map)
+                                 (section-id conjugations))
+                                [""]))))]
+    (print str)))
 
 (defn get-conj [query]
   (a/go
@@ -517,7 +717,15 @@
           dom (-> (:data reps)
                   hk/parse
                   hk/as-hickory)]
-      )))
+      ;; TODO Maybe we can move this logic into the output function
+      (binding [term/*disable-colors* (or (:no-color @*options*)
+                                          (not
+                                           (nil? (aget process/env "NO_COLOR"))))]
+        (let [conjugations (get-conj-conjugations dom)]
+          (print-non-finite-conjugations conjugations)
+          (output "\n")
+          (print-finite-conjugations conjugations))))))
+
 
 (defn main [query]
   (a/go
@@ -574,6 +782,7 @@
 (set! js/DOMParser DOMParserNoWarning)
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
+    (swap! *options* (constantly options))
     (cond
       (seq errors)
       (do (->> errors
@@ -589,18 +798,11 @@
       (display-usage)
 
       (:conjugation options)
-      (get-conj (some->> (seq arguments)
-                         (str/join " ")
-                         main))
+      (some->> (seq arguments)
+               (str/join " ")
+               get-conj)
 
-      :else (do (swap! *options* (constantly options))
-                (some->> (seq arguments)
-                         (str/join " ")
-                         main)))))
-
-
-#_(a/go
-    (a/<! (main "retraite")))
-
-#_(a/go
-    (a/<! (main "ridiculous")))
+      :else
+      (some->> (seq arguments)
+               (str/join " ")
+               main))))
