@@ -1,0 +1,40 @@
+#+begin_quote
+Some notes about environment-related stuffes, in case I forget them in the future. They could also be useful for someone else.
+#+end_quote
+
+* Getting Start with Cider
+
+With the necessary depedencies (clojure and shadow-cljs on the clojure side, and ~npm -i~ on the javascript side) installed.
+
+Then in Emacs:
+
+~cider-jack-in-cljs~ -> ~shadow-cljs~ -> ~shadow~ -> ~:node-repl~
+
+You can try to evaluate some code in ~playground.cljs~ after the environment is loaded.
+
+Remeber, ~print~ doesn't work on async calls, use ~tap>~ for debugging purposes.
+
+* Build Directly with NPM
+
+#+begin_src sh
+npm run build
+#+end_src
+
+* Update Dependencies in Nix
+
+Check https://nixos.org/manual/nixpkgs/stable/#javascript-buildNpmPackage
+
+* Nix-Related Commands
+
+Note: currently the flake file only works by running the existing ~out/espoir.js~ file, as making Clojure work with Nix is kinda hard.
+
+** Run the ~espoir~ Command
+
+nix run . -- espoir
+
+** +Build the Project+
+
+#+begin_src sh
+nix build .
+#+end_src
+Then check the result directory

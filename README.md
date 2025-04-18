@@ -61,4 +61,13 @@ Options:
 
 ### English to French
 
-![img](screenshots/en-to-fr.png)
+![img](screenshots/en-to-fr.png)  
+
+
+### Conjugations
+
+```bash
+espoir -g croître # part of the result
+```
+
+![img](screenshots/conjugations.png)

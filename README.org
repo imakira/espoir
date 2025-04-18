@@ -64,3 +64,10 @@ Options:
 *** English to French
 
 [[file:screenshots/en-to-fr.png]]
+
+*** Conjugations
+#+BEGIN_SRC bash
+espoir -g croître # part of the result
+#+END_SRC
+
+[[file:screenshots/conjugations.png]]
