@@ -11,7 +11,7 @@ espoir means "hope" in French.
 
 ** Installing
 
-*** Using npm
+*** +Using npm+
 
 #+BEGIN_SRC bash
 npm -g @imakira/espoir
@@ -21,8 +21,10 @@ espoir espoir
 *** Using Nix
 
 #+BEGIN_SRC bash
-nix run github:imakira/espoir -- espoir
+nix run github:imakira/espoir/sqlite -- espoir
 #+END_SRC
+
+#+RESULTS:
 
 ** Usage
 

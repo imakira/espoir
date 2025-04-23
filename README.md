@@ -8,7 +8,7 @@
 ## Installing
 
 
-### Using npm
+### ~~Using npm~~
 
 ```bash
 npm -g @imakira/espoir
@@ -19,7 +19,7 @@ espoir espoir
 ### Using Nix
 
 ```bash
-nix run github:imakira/espoir -- espoir
+nix run github:imakira/espoir/sqlite -- espoir
 ```
 
 

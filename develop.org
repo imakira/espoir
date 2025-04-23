@@ -24,6 +24,13 @@ npm run build
 
 Check https://nixos.org/manual/nixpkgs/stable/#javascript-buildNpmPackage
 
+Use
+#+BEGIN_SRC sh
+prefetch-npm-deps package-lock.json
+#+END_SRC
+to get the value for ~npmDepsHash~ in flake.nix
+
+
 * Nix-Related Commands
 
 Note: currently the flake file only works by running the existing ~out/espoir.js~ file, as making Clojure work with Nix is kinda hard.

@@ -13,7 +13,7 @@
           pname = "espoir";
           version = "0.0.1";
           src = "${self}";
-          npmDepsHash = "sha256-oE9fx4IX0NENw1usb9C8fQlbmGwQsPyMpdKwjXAMub8=";
+          npmDepsHash = "sha256-Gcn7ymXpr/b/GtGJ84s1ywHrBjovo4p7vH/JeNGentc=";
           npmPackFlags = [ "--ignore-scripts" ];
           dontNpmBuild = true;
         };
