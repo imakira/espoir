@@ -44,6 +44,7 @@ Options:
 
 -   [DONE] English to French Support
 -   [DONE] Conjugations of a Verb
+-   [WIP] builtin caching (check the [sqlite branch](https://github.com/imakira/espoir/tree/sqlite))
 
 
 ## Screenshots
