@@ -1,12 +1,15 @@
 (ns net.coruscation.espoir.playground
   (:require
+   [goog.object :as go]
    [clojure.string :as str]
    [clojure.term.colors :as term]
    [clojure.tools.cli :as cli]
    [clojure.core.async :as a]
    [hickory.select :as hs]
    [hickory.core :as hk]
-   [net.coruscation.espoir.main :as main]))
+   [net.coruscation.espoir.main :as main]
+   [net.coruscation.espoir.db :as db]
+   [net.coruscation.espoir.utils :as utils]))
 
 (def sample-page (atom nil))
 (def query "espoir")

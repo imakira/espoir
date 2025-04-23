@@ -1,5 +1,6 @@
 (ns net.coruscation.espoir.main
   (:require
+   [net.coruscation.espoir.preinit :as pi]
    [hickory.select :as hs]
    [hickory.core :as hk]
    [clojure.string :as str]
@@ -8,7 +9,9 @@
    [clojure.core.async :as a]
    [cljs.math :as math]
    ["process" :as process]
-   [goog.string :as gstr]))
+   [net.coruscation.espoir.db :as db]
+   [net.coruscation.espoir.utils :as utils]
+   [goog.object :as goog.object]))
 
 (def axios (js/require "axios"))
 (def xmldom (js/require "xmldom"))
@@ -710,67 +713,90 @@
                                 [""]))))]
     (print str)))
 
+(def get-conj-by-query
+  (db/persistent-async-memoize
+   "get-conj-by-query"
+   1
+   (fn [query]
+     (a/go
+       (try (let [reps (a/<! (http-get
+                              (str
+                               "https://www.wordreference.com/conj/frverbs.aspx?v="
+                               query)))
+                  dom (-> (:data reps)
+                          hk/parse
+                          hk/as-hickory)]
+              [(get-conj-conjugations dom) nil])
+            (catch js/Error e
+              [nil e]))))))
+
 (defn get-conj [query]
   (a/go
-    (let [reps (a/<! (http-get
-                      (str
-                       "https://www.wordreference.com/conj/frverbs.aspx?v="
-                       query)))
-          dom (-> (:data reps)
-                  hk/parse
-                  hk/as-hickory)]
-      ;; TODO Maybe we can move this logic into the output function
-      (binding [term/*disable-colors* (or (:no-color @*options*)
-                                          (not
-                                           (nil? (aget process/env "NO_COLOR"))))]
-        (let [conjugations (get-conj-conjugations dom)]
-          (if (empty? conjugations)
-	    (println (term/red "Conjugations for word "
-                               (term/bold (term/green query))
-                               " can't be found"))
-            (do (print-non-finite-conjugations conjugations)
-                (output "\n")
-                (print-finite-conjugations conjugations))))))))
+    ;; TODO Maybe we can move this logic into the output function
+    (binding [term/*disable-colors* (or (:no-color @*options*)
+                                        (not
+                                         (nil? (aget process/env "NO_COLOR"))))]
+      (let [[conjugations err] (a/<! (get-conj-by-query query))]
+        (when err (throw err))
+        (if (empty? conjugations)
+	  (println (term/red "Conjugations for word "
+                             (term/bold (term/green query))
+                             " can't be found"))
+          (do (print-non-finite-conjugations conjugations)
+              (output "\n")
+              (print-finite-conjugations conjugations)))))))
 
+
+(def get-word-by-query
+  (db/persistent-async-memoize
+   "get-word-by-query"
+   1
+   (fn [query]
+     (a/go
+       (try
+         (let [{:keys [fr-to-en en-to-fr] } @*options*
+               reps (a/<! (http-get (str "https://www.wordreference.com/"
+                                         (if en-to-fr
+                                           "enfr/"
+                                           "fren/")
+                                         query)))
+               doc (try (-> (:data reps)
+                            hk/parse
+                            hk/as-hickory)
+                        (catch js/Error e
+                          (throw (ex-info "Word not found" {:type :word-not-found}))))
+               eng? (->> (aget (:request reps) "path")
+                         (re-matches #"^/enfr/.*$")
+                         boolean)]
+           (when (or (and fr-to-en
+                          eng?)
+                     (and en-to-fr
+                          (not eng?)))
+             (throw (ex-info "Word not found" {:type :word-not-found})))
+           [(merge (get-word doc) {:lang (if eng? :en :fr)}) nil])
+         (catch js/Error e
+           [nil e]))))))
 
 (defn main [query]
   (a/go
-    (try
-      (let [{:keys [fr-to-en en-to-fr] } @*options*
-            reps (a/<! (http-get (str "https://www.wordreference.com/"
-                                      (if en-to-fr
-                                        "enfr/"
-                                        "fren/")
-                                      query)))
-            doc (try (-> (:data reps)
-                         hk/parse
-                         hk/as-hickory)
-                     (catch js/Error e
-                       (throw (ex-info "Word not found" {:type :word-not-found}))))
-            eng? (->> (aget (:request reps) "path")
-                      (re-matches #"^/enfr/.*$")
-                      boolean)]
-        (when (or (and fr-to-en
-                       eng?)
-                  (and en-to-fr
-                       (not eng?)))
-          (throw (ex-info "Word not found" {:type :word-not-found})))
-        (binding [*lang* (if eng? :en :fr)
-                  term/*disable-colors* (or (:no-color @*options*)
-                                            (not
-                                             (nil? (aget process/env "NO_COLOR"))))]
-          (->> (get-word doc)
-               (print-word query))))
-      (catch js/Error e
-        (case (:type (ex-data e))
-          :word-not-found (do
-                            (println (term/red "Word "
-                                               ((comp term/bold term/green)
-                                                query)
-                                               " not found."))
-                            (when-not @*interactive*
-                              (process/exit 1)))
-          (throw e))))))
+    (let [[word err] (a/<! (get-word-by-query query))]
+      (try (if err
+             (case (:type (ex-data err))
+               :word-not-found (do
+                                 (println (term/red "Word "
+                                                    ((comp term/bold term/green)
+                                                     query)
+                                                    " not found."))
+                                 (when-not @*interactive*
+                                   (process/exit 1)))
+               [nil (throw err)])
+             (binding [*lang* (:lang word)
+                       term/*disable-colors* (or (:no-color @*options*)
+                                                 (not
+                                                  (nil? (aget process/env "NO_COLOR"))))]
+               [(print-word query word) nil]))
+           (catch js/Error e
+             [nil e])))))
 
 (defn display-usage []
   (->> ["Usage: espoir [options] words"
