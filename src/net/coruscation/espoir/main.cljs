@@ -228,7 +228,7 @@
                                          item))
                  :text text})))))
 
-(defn process-wrd [wrd]
+(defn process-wrd [wrd lang]
   (hs/select (hs/child (hs/tag "tbody")
                        (hs/tag "tr"))
              wrd)
@@ -243,7 +243,7 @@
                                             :attrs
                                             :id
                                             (str/starts-with?
-                                             (if (= *lang* :fr)
+                                             (if (= lang :fr)
                                                "fren:"
                                                "enfr:")))
                                   (conj result [next])
@@ -343,7 +343,7 @@
   (when-let [pronDom (first (hs/select (hs/id "pronWR") doc))]
     (first (:content pronDom))))
 
-(defn get-word [doc]
+(defn get-word [doc lang]
   {:pron (get-pron doc)
    :inflections (get-inflections doc)
    :defs (->> doc
@@ -352,7 +352,7 @@
                  (if (seq wrds)
                    wrds
                    (throw (ex-info "Word not found" {:type :word-not-found})))))
-              (map process-wrd))})
+              (map (fn [x] (process-wrd x lang))))})
 
 (defn print-pron [query pron]
   (output (str ((comp color-head term/bold)
@@ -753,10 +753,10 @@
    1
    ;; TODO
    ;; add lang option to the param list
-   (fn [query]
+   (fn [query lang]
      (a/go
        (try
-         (let [{:keys [fr-to-en en-to-fr] } @*options*
+         (let [[fr-to-en en-to-fr]  (cond (= lang :fr) [true nil] (= lang :en)  [nil true] true [nil nil])
                reps (a/<! (http-get (str "https://www.wordreference.com/"
                                          (if en-to-fr
                                            "enfr/"
@@ -769,19 +769,21 @@
                           (throw (ex-info "Word not found" {:type :word-not-found}))))
                eng? (->> (aget (:request reps) "path")
                          (re-matches #"^/enfr/.*$")
-                         boolean)]
+                         boolean)
+               result-lang (if eng? :en :fr)]
            (when (or (and fr-to-en
                           eng?)
                      (and en-to-fr
                           (not eng?)))
              (throw (ex-info "Word not found" {:type :word-not-found})))
-           [(merge (get-word doc) {:lang (if eng? :en :fr)}) nil])
+           [(merge (get-word doc result-lang) {:lang result-lang}) nil])
          (catch js/Error e
            [nil e]))))))
 
 (defn main [query]
   (a/go
-    (let [[word err] (a/<! (get-word-by-query query))]
+    (let [{:keys [en-to-fr fr-to-en] } @*options*
+          [word err] (a/<! (get-word-by-query query (cond en-to-fr :en fr-to-en :fr true nil)))]
       (try (if err
              (case (:type (ex-data err))
                :word-not-found (do
