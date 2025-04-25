@@ -751,6 +751,8 @@
   (db/persistent-async-memoize
    "get-word-by-query"
    1
+   ;; TODO
+   ;; add lang option to the param list
    (fn [query]
      (a/go
        (try
@@ -773,7 +775,7 @@
                      (and en-to-fr
                           (not eng?)))
              (throw (ex-info "Word not found" {:type :word-not-found})))
-           [(merge (get-word doc) {:lang (if eng? "en" "fr")}) nil])
+           [(merge (get-word doc) {:lang (if eng? :en :fr)}) nil])
          (catch js/Error e
            [nil e]))))))
 
@@ -790,7 +792,7 @@
                                  (when-not @*interactive*
                                    (process/exit 1)))
                [nil (throw err)])
-             (binding [*lang* (keyword (:lang word))
+             (binding [*lang* (:lang word)
                        term/*disable-colors* (or (:no-color @*options*)
                                                  (not
                                                   (nil? (aget process/env "NO_COLOR"))))]

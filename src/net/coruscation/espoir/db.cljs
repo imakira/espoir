@@ -4,7 +4,8 @@
             ["node:fs" :as fs]
             [net.coruscation.espoir.utils :as utils
              :refer [lstr]]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async]
+            [clojure.edn :as edn]))
 
 (defn sql-escape [str]
   (str/replace str "'" "''"))
@@ -81,7 +82,7 @@
                 (throw err)))))
 
 (def ^:dynamic *db* (open-db (str data-dir "/data")))
-(def ^:dynamic *db-version* 5)
+(def ^:dynamic *db-version* 6)
 
 (espoir-db-check-or-reinit *db* *db-version*)
 
@@ -110,16 +111,18 @@
             (finally
               (throw e))))))))
 
+(defn deserialize-obj [str]
+  (edn/read-string str))
+
 (defn serialize-obj [obj]
-  (js/JSON.stringify (clj->js obj)))
+  (pr-str obj))
 
 (defn memoize-get-saved-result [id params]
   (-> *db*
       (db-prepare (str "select result from memoize where id=$id and params=$params;"))
-      (stat-get {:$id id :$params (js/JSON.stringify (clj->js params))})
+      (stat-get {:$id id :$params (serialize-obj params)})
       :result
-      js/JSON.parse
-      (utils/recur-obj->clj :keywordize-keys true)))
+      deserialize-obj))
 
 (defn memoize-save-result [id params result]
   (-> *db*
@@ -151,3 +154,4 @@
               :else
               (do (memoize-save-result id params result)
                   [result nil]))))))))
+
