@@ -777,7 +777,8 @@
         "Options: "
         (:summary (cli/parse-opts [] cli-options))]
        (str/join \newline)
-       println))
+       println)
+  (println "\nIf find this little tool useful, I will really appreciate if you can give the project (https://github.com/imakira/espoir) a star."))
 
 (defn ^:export DOMParserNoWarning [& rest]
   (xmldom.DOMParser. #js {:locator {}

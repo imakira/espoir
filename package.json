@@ -1,6 +1,6 @@
 {
   "name": "@imakira/espoir",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": false,
   "scripts": {
     "build": "shadow-cljs compile script",
@@ -15,5 +15,6 @@
   },
   "bin": {
       "espoir": "out/espoir.js"
-  }
+  },
+  "files": ["out/**/*"]
 }
