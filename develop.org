@@ -26,13 +26,11 @@ Check https://nixos.org/manual/nixpkgs/stable/#javascript-buildNpmPackage
 
 * Nix-Related Commands
 
-Note: currently the flake file only works by running the existing ~out/espoir.js~ file, as making Clojure work with Nix is kinda hard.
-
 ** Run the ~espoir~ Command
 
 nix run . -- espoir
 
-** +Build the Project+
+** Build the Project
 
 #+begin_src sh
 nix build .
