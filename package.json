@@ -1,9 +1,10 @@
 {
   "name": "@imakira/espoir",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": false,
   "scripts": {
-    "build": "shadow-cljs release script"
+    "build": "shadow-cljs compile script",
+    "release": "shadow-cljs release script"
   },
   "devDependencies": {
     "shadow-cljs": "2.28.14",
@@ -18,5 +19,6 @@
   },
   "engines": {
     "node": ">=22.0.0"
-  }
+  },
+  "files": ["out/**/*"]
 }

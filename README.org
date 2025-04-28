@@ -52,6 +52,7 @@ Options:
 
 - [DONE] English to French Support
 - [DONE] Conjugations of a Verb
+- [TESTING] builtin caching (check the [[https://github.com/imakira/espoir/tree/sqlite][sqlite branch]])
 
 ** Screenshots
 
@@ -73,3 +74,10 @@ espoir -g croître # part of the result
 #+END_SRC
 
 [[file:screenshots/conjugations.png]]
+
+** Contribution
+
+If you find this little tool useful, I will really appreciate if you can give this project a star.
+
+If you want to experiment with the code, check the [[https://github.com/imakira/espoir/blob/main/develop.org][develop.org]]
+
