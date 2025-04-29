@@ -808,7 +808,8 @@
         (:summary (cli/parse-opts [] cli-options))]
        (str/join \newline)
        println)
-  (println "\nIf find this little tool useful, I will really appreciate if you can give the project (https://github.com/imakira/espoir) a star."))
+  (println "\nIf you encountered any issue, feel free to fire an issue at https://github.com/imakira/espoir/issues")
+  (println "If find this little tool useful, I will really appreciate if you can give the project (https://github.com/imakira/espoir) a star."))
 
 (defn ^:export DOMParserNoWarning [& rest]
   (xmldom.DOMParser. #js {:locator {}

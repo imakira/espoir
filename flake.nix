@@ -20,7 +20,7 @@
           npmBuildScript = "release";
           version = "0.0.1";
           src = "${self}";
-          npmDepsHash = "sha256-vxAe21B0yLdsUeCcU5ZJQX28TsKKG6Pe2kbSjWkERuk=";
+          npmDepsHash = "sha256-JF87TaZLVKS0v+Pc50kECjlhrqqGr2TCFi4+HqCYPeQ=";
           deps-cache = pkgs.mk-deps-cache { lockfile = ./deps-lock.json; };
           # npmPackFlags = [ "--ignore-scripts" ];
           # dontNpmBuild = true;

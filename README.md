@@ -8,7 +8,7 @@
 ## Installing
 
 
-### ~~Using npm~~
+### Using npm
 
 ```bash
 npm -g @imakira/espoir
@@ -19,7 +19,7 @@ espoir espoir
 ### Using Nix
 
 ```bash
-nix run github:imakira/espoir/sqlite -- espoir
+nix run github:imakira/espoir -- espoir
 ```
 
 
@@ -44,7 +44,7 @@ Options:
 
 -   [DONE] English to French Support
 -   [DONE] Conjugations of a Verb
--   [TESTING] builtin caching (check the [sqlite branch](https://github.com/imakira/espoir/tree/sqlite))
+-   [DONE] builtin caching
 
 
 ## Screenshots
@@ -76,6 +76,8 @@ espoir -g croître # part of the result
 
 ## Contribution
 
-If you find this little tool useful, I will really appreciate if you can give this project a star.  
+If you encountered any issue, feel free to fire an issue at <https://github.com/imakira/espoir/issues>.  
+
+If you find this little tool useful, I will really appreciate if you can give the project a star.  
 
 If you want to experiment with the code, check the [develop.org](https://github.com/imakira/espoir/blob/main/develop.org)
