@@ -4,7 +4,7 @@ Some notes about environment-related stuffes, in case I forget them in the futur
 
 * Getting Start with Cider
 
-With the necessary depedencies (clojure and shadow-cljs on the clojure side, and ~npm -i~ on the javascript side) installed.
+With the necessary depedencies (clojure and nodejs, which you can get by using ~nix develop~, followed with ~npm -i~) installed.
 
 Then in Emacs:
 
