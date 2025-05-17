@@ -76,10 +76,10 @@
                    "/net.coruscation.espoir"))
 
 (when (not (fs/existsSync data-dir))
-  (fs/mkdir data-dir #js {:recursive true}
-            (fn [err]
-              (when err
-                (throw err)))))
+  (fs/mkdirSync data-dir #js {:recursive true}
+                (fn [err]
+                  (when err
+                    (throw err)))))
 
 (def ^:dynamic *db* (open-db (str data-dir "/data")))
 (def ^:dynamic *db-version* 6)
