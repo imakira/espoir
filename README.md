@@ -45,6 +45,7 @@ Options:
 -   [DONE] English to French Support
 -   [DONE] Conjugations of a Verb
 -   [DONE] builtin caching
+-   [TODO] alternative backend with data from wiktionary (and offline usage)?
 
 
 ## Screenshots
