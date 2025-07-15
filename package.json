@@ -1,6 +1,6 @@
 {
   "name": "@imakira/espoir",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "private": false,
   "scripts": {
     "build": "shadow-cljs compile script",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "axios": "^1.7.7",
-    "xmldom": "^0.6.0"
+    "jsdom": "^26.1.0"
   },
   "bin": {
     "espoir": "out/espoir.js"
@@ -20,5 +20,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "files": ["out/**/*"]
+  "files": [
+    "out/**/*"
+  ]
 }

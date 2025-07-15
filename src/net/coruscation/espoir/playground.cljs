@@ -12,7 +12,7 @@
    [net.coruscation.espoir.utils :as utils]))
 
 (def sample-page (atom nil))
-(def query "espoir")
+(def query "poste")
 
 (a/go
   (reset! sample-page
@@ -23,10 +23,10 @@
 
 (def dom (-> @sample-page
              :data
-             hk/parse-dom-with-domparser
+             hk/parse
              hk/as-hickory))
 
-(def word (main/get-word dom))
+(def word (main/get-word dom :fr))
 
 (main/print-word query word)
 

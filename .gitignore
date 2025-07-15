@@ -137,3 +137,7 @@ __scratch.cljs
 /TODO.org
 /out/
 .direnv
+.clj-kondo/
+.lsp
+demo.html
+wrd.html

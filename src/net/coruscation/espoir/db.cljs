@@ -82,7 +82,7 @@
                     (throw err)))))
 
 (def ^:dynamic *db* (open-db (str data-dir "/data")))
-(def ^:dynamic *db-version* 6)
+(def ^:dynamic *db-version* 7)
 
 (espoir-db-check-or-reinit *db* *db-version*)
 

@@ -11,10 +11,11 @@
    ["process" :as process]
    [net.coruscation.espoir.db :as db]
    [net.coruscation.espoir.utils :as utils]
-   [goog.object :as goog.object]))
+   [goog.object :as goog.object]
+   ["jsdom" :as jsdom]))
 
 (def axios (js/require "axios"))
-(def xmldom (js/require "xmldom"))
+
 (def ^:dynamic *interactive* (atom false))
 #_(reset! *interactive* true)
 
@@ -811,13 +812,9 @@
   (println "\nIf you encountered any issue, feel free to fire an issue at https://github.com/imakira/espoir/issues")
   (println "If find this little tool useful, I will really appreciate if you can give the project (https://github.com/imakira/espoir) a star."))
 
-(defn ^:export DOMParserNoWarning [& rest]
-  (xmldom.DOMParser. #js {:locator {}
-                          :errorHandler #()
-                          :error #()
-                          :fatalError #(js/console.error %)}))
+;; https://github.com/clj-commons/hickory/pull/33#issuecomment-402871115
+(set! js/document (.-document (.-window (jsdom/JSDOM.))))
 
-(set! js/DOMParser DOMParserNoWarning)
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
     (swap! *options* (constantly options))

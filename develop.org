@@ -8,7 +8,7 @@ With the necessary depedencies (clojure and nodejs, which you can get by using ~
 
 Then in Emacs:
 
-~cider-jack-in-cljs~ -> ~shadow-cljs~ -> ~shadow~ -> ~:node-repl~
+~cider-jack-in-cljs~ -> ~shadow-cljs~ -> ~shadow~ -> ~node-repl~
 
 You can try to evaluate some code in ~playground.cljs~ after the environment is loaded.
 
