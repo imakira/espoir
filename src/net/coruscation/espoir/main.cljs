@@ -513,11 +513,13 @@
       (print-conjugations conjugations)
       (println))
     (when (not inflections-only)
-      (let [defs (if (:all @*options*)
+      (let [principal-defs  (filter (fn [{:keys [title definitions]}]
+                                      (= title "Principal Translations"))
+                                    defs)
+            defs (if (or (:all @*options*)
+                         (empty? principal-defs))
                    defs
-                   (filter (fn [{:keys [title definitions]}]
-                             (= title "Principal Translations"))
-                           defs))]
+                   principal-defs)]
         (if (:short @*options*)
           (print-definitions-short defs)
           (print-definitions defs))))))
