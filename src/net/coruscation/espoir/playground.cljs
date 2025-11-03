@@ -12,13 +12,21 @@
    [net.coruscation.espoir.utils :as utils]))
 
 (def sample-page (atom nil))
-(def query "poste")
+(def query "nonexistefads")
+(a/go (tap> (a/<! (main/get-word-by-query query))))
+
+(a/go (tap> (a/<! (main/get-conj-by-query query))))
 
 (a/go
   (reset! sample-page
-          (doto (a/<!
-                 (main/http-get
-                  (str "https://www.wordreference.com/fren/" query)))
+          (doto (try (let [[chan error-chan]
+                           (a/<! (main/http-get
+                                  (str "https://www.wordreference.com/fren/" query)))]
+                       (a/alt! chan ([result] result)
+                               error-chan ([error] (throw error))))
+                     (catch js/Error e
+                       (tap> "error caught")
+                       e))
             tap>)))
 
 (def dom (-> @sample-page

@@ -21,11 +21,29 @@
 
 (defn http-get [url]
   (a/go
-    (let [chan (a/chan)]
+    (let [chan (a/chan)
+          error-chan (a/chan)]
       (-> (axios.get url)
           (.then (fn [resp]
-                   (a/go (a/>! chan (js->clj resp :keywordize-keys true))))))
-      (a/<! chan))))
+                   (a/go (a/>! chan (js->clj resp :keywordize-keys true)))))
+          (.catch (fn [error]
+                    (a/go
+                      (cond (and
+                             (= (type error) (aget axios "AxiosError"))
+                             (= (.-status error)
+                                404))
+                            (a/>! error-chan (ex-info "Word not found" {:type :word-not-found}))
+
+                            (= (type error) (aget axios "AxiosError"))
+                            (a/>! error-chan (ex-info "Http Error" {:type :http-error
+                                                                    :error error}))
+
+	                        true
+                            (a/>! error-chan (ex-info (.-message error)
+                                                      {:type :unknown-error
+                                                       :error error})))
+                      (a/>! error-chan error)))))
+      [chan error-chan])))
 
 (defn output [& args]
   (process/stdout.write (str/join " " (map str args))))
@@ -720,10 +738,12 @@
    1
    (fn [query]
      (a/go
-       (try (let [reps (a/<! (http-get
-                              (str
-                               "https://www.wordreference.com/conj/frverbs.aspx?v="
-                               query)))
+       (try (let [[chan error-chan] (a/<! (http-get
+                                           (str
+                                            "https://www.wordreference.com/conj/frverbs.aspx?v="
+                                            query)))
+                  reps (a/alt! chan ([result] result)
+                               error-chan ([error] (throw error)))
                   dom (-> (:data reps)
                           hk/parse
                           hk/as-hickory)]
@@ -740,7 +760,7 @@
       (let [[conjugations err] (a/<! (get-conj-by-query query))]
         (when err (throw err))
         (if (empty? conjugations)
-	  (println (term/red "Conjugations for word "
+	      (println (term/red "Conjugations for word "
                              (term/bold (term/green query))
                              " can't be found"))
           (do (print-non-finite-conjugations conjugations)
@@ -758,11 +778,14 @@
      (a/go
        (try
          (let [[fr-to-en en-to-fr]  (cond (= lang :fr) [true nil] (= lang :en)  [nil true] true [nil nil])
-               reps (a/<! (http-get (str "https://www.wordreference.com/"
-                                         (if en-to-fr
-                                           "enfr/"
-                                           "fren/")
-                                         query)))
+               reps (let [[chan error-chan]
+                          (a/<! (http-get (str "https://www.wordreference.com/"
+                                               (if en-to-fr
+                                                 "enfr/"
+                                                 "fren/")
+                                               query)))]
+                      (a/alt! chan ([result] result)
+                              error-chan ([error] (throw error))))
                doc (try (-> (:data reps)
                             hk/parse
                             hk/as-hickory)
@@ -794,6 +817,10 @@
                                                     " not found."))
                                  (when-not @*interactive*
                                    (process/exit 1)))
+               :http-error (do
+                             (println err)
+                             (when-not @*interactive*
+                               (process/exit 1)))
                [nil (throw err)])
              (binding [*lang* (:lang word)
                        term/*disable-colors* (or (:no-color @*options*)
