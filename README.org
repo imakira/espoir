@@ -14,7 +14,7 @@ espoir means "hope" in French.
 *** Using npm
 
 #+BEGIN_SRC bash
-npm -g @imakira/espoir
+npm -g @imakira/espoir@latest
 espoir espoir
 #+END_SRC
 
