@@ -9,7 +9,7 @@
 espoir means "hope" in French.
 #+END_QUOTE
 
-[[https://github.com/imakira/espoir/blob/main/screenshots/espoir.png?raw=true][espoir.png]]
+[[https://github.com/imakira/espoir/blob/main/screenshots/espoir.png?raw=true]]
 
 ** Installing
 

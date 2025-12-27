@@ -5,7 +5,7 @@
 
 > espoir means "hope" in French.  
 
-[espoir.png](https://github.com/imakira/espoir/blob/main/screenshots/espoir.png?raw=true)  
+![img](https://github.com/imakira/espoir/blob/main/screenshots/espoir.png?raw=true)  
 
 
 ## Installing
