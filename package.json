@@ -1,6 +1,6 @@
 {
   "name": "@imakira/espoir",
-  "version": "0.0.10",
+  "version": "1.0.0",
   "private": false,
   "scripts": {
     "build": "shadow-cljs compile script",
@@ -21,6 +21,7 @@
     "node": ">=22.0.0"
   },
   "files": [
-    "out/**/*"
+    "out/**/*",
+    "README.md"
   ]
 }

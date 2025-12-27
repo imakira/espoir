@@ -22,13 +22,27 @@ npm run build
 
 * Update Dependencies in Nix
 
+** Update JavaScript depedencies
+
 Check https://nixos.org/manual/nixpkgs/stable/#javascript-buildNpmPackage
+
+After doing ~npm update~
 
 Use
 #+BEGIN_SRC sh
 prefetch-npm-deps package-lock.json
 #+END_SRC
 to get the value for ~npmDepsHash~ in flake.nix
+
+
+
+** Update Clojure dependencies
+
+After updating clojure dependencies :
+
+#+BEGIN_SRC bash
+nix run github:jlesquembre/clj-nix#deps-lock
+#+END_SRC
 
 
 * Nix-Related Commands
@@ -43,3 +57,12 @@ nix run . -- espoir
 nix build .
 #+end_src
 Then check the result directory
+
+* Publish Build to npm
+
+After building the package with ~npm run release~
+
+#+BEGIN_SRC bash
+npm publish
+#+END_SRC
+
