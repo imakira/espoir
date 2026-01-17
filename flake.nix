@@ -12,28 +12,49 @@
             clj-nix.overlays.default
           ];
         };
+
+        deps-hash = "sha256-e+Tltq/MnrFTgUUCLQYc01Ka1zqeX2AvZtu7XTNiK4Y=";
+
+        npm-deps = pkgs.buildNpmPackage(finalAttrs: {
+          src = self;
+          pname = "espoir-npm-deps";
+          version = "0.0";
+          dontNpmBuild = true;
+          npmDepsHash = deps-hash;
+          installPhase = ''
+          mkdir $out
+          cp -r ./node_modules $out/node_modules
+          '';
+        });
+
+        build = pkgs.mkCljLib {
+          projectSrc  = self;
+          name = "espoir";
+          buildCommand = "
+          cp -r ${npm-deps}/node_modules ./node_modules
+          ${pkgs.tree}/bin/tree
+          ${pkgs.nodejs}/bin/npm run release
+          ";
+          installPhase = ''
+          mkdir -p $out
+          cp -R * $out/
+          '';
+        };
       in {
         # devShells.default = (fhsFn "/usr/bin/env bash").env;
-        packages.default = pkgs.buildNpmPackage rec {
+        packages.build = build;
+        packages.npm-deps = npm-deps;
+        packages.default = pkgs.buildNpmPackage {
           pname = "espoir";
-          nativeBuildInputs = [ pkgs.babashka pkgs.clojure ];
-          npmBuildScript = "release";
+          src = build;
+          dontNpmBuild = true;
           version = "0.0.1";
-          src = "${self}";
-          npmDepsHash = "sha256-e+Tltq/MnrFTgUUCLQYc01Ka1zqeX2AvZtu7XTNiK4Y=";
-          deps-cache = pkgs.mk-deps-cache { lockfile = ./deps-lock.json; };
-          # npmPackFlags = [ "--ignore-scripts" ];
-          # dontNpmBuild = true;
-          # TODO
-          # this step only works for dependencies fetched by mvn
-          # Make shadow-cljs use cached deps
-          preBuild = ''
-            bb -e '(-> (slurp "deps.edn")
-                       rewrite-clj.zip/of-string
-                       (rewrite-clj.zip/assoc :mvn/local-repo "${deps-cache}/.m2/repository")
-                       rewrite-clj.zip/root-string
-                       (#(spit "deps.edn" %)))'
-          '';
+          npmDepsHash = deps-hash;
+        };
+        devShells.default = pkgs.mkShell {
+          packages = [
+            pkgs.clojure pkgs.node-js
+          ];
         };
       }
     );
