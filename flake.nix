@@ -28,8 +28,8 @@
         });
 
         build = pkgs.mkCljLib {
-          projectSrc  = self;
-          name = "espoir";
+          projectSrc = self;
+          name = "espoir-shadow-build";
           buildCommand = "
           cp -r ${npm-deps}/node_modules ./node_modules
           ${pkgs.tree}/bin/tree
@@ -53,7 +53,7 @@
         };
         devShells.default = pkgs.mkShell {
           packages = [
-            pkgs.clojure pkgs.node-js
+            pkgs.clojure pkgs.nodejs
           ];
         };
       }
