@@ -32,7 +32,6 @@
           name = "espoir-shadow-build";
           buildCommand = "
           cp -r ${npm-deps}/node_modules ./node_modules
-          ${pkgs.tree}/bin/tree
           ${pkgs.nodejs}/bin/npm run release
           ";
           installPhase = ''
